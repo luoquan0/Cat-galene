@@ -465,8 +465,15 @@ getButtonElement('presentbutton').onclick = async function(e) {
     button.disabled = true;
     try {
         let id = findUpMedia('camera');
-        if(!id)
+        if(!id) {
+            if(!getSettings().audio && !getSettings().video) {
+                // The generic Enable button deliberately starts both devices.
+                // The adjacent camera/microphone controls remain independent.
+                updateSettings({audio: 'default', video: 'default', localMute: false});
+                reflectSettings();
+            }
             await addLocalMedia();
+        }
     } finally {
         button.disabled = false;
     }
@@ -475,6 +482,11 @@ getButtonElement('presentbutton').onclick = async function(e) {
 getButtonElement('unpresentbutton').onclick = function(e) {
     e.preventDefault();
     closeUpMedia('camera');
+    // Prevent a later click on one device from silently reopening the other.
+    updateSettings({audio: '', video: '', localMute: true});
+    reflectSettings();
+    updateCameraButton();
+    setButtonsVisibility();
     resizePeers();
 };
 
@@ -2410,6 +2422,28 @@ function setTitle(title) {
 }
 
 /**
+ * Apply the three entry choices before acquiring any local media.
+ * The "Nothing" choice must not retain stored defaults that would
+ * turn a microphone-only or camera-only click into a combined request.
+ *
+ * @param {string} present
+ */
+function configureJoinDevices(present) {
+    const settings = getSettings();
+    if(present === 'mike') {
+        updateSettings({audio: settings.audio || 'default',
+                        video: '', localMute: false});
+    } else if(present === 'both') {
+        updateSettings({audio: settings.audio || 'default',
+                        video: settings.video || 'default', localMute: false});
+    } else {
+        updateSettings({audio: '', video: '', localMute: true});
+    }
+    reflectSettings();
+    updateCameraButton();
+}
+
+/**
  * @this {ServerConnection}
  * @param {string} kind
  * @param {string} group
@@ -2494,14 +2528,8 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
        ('getUserMedia' in navigator.mediaDevices) &&
        serverConnection.permissions.indexOf('present') >= 0 &&
        !findUpMedia('camera')) {
+        configureJoinDevices(present);
         if(present) {
-            if(present === 'mike')
-                updateSettings({video: ''});
-            else if(present === 'both')
-                delSetting('video');
-            reflectSettings();
-            updateCameraButton();
-
             let button = getButtonElement('presentbutton');
             button.disabled = true;
             try {

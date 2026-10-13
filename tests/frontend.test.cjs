@@ -229,3 +229,28 @@ test('Simplified Chinese translations cover all settings, option labels and Engl
     assert.equal(translate('Camera 2', 'zh-CN'), '摄像头 2');
     assert.equal(translate('(3 clients, locked)', 'zh-CN'), '（3 人，已锁定）');
 });
+
+test('join choices preserve fully independent device intents', () => {
+    const match = galene.match(/function configureJoinDevices\(present\) \{[\s\S]*?\n\}\n/);
+    assert.ok(match);
+    const settings = {audio: 'default', video: 'default', localMute: false};
+    const sandbox = {
+        getSettings: () => settings,
+        updateSettings: changed => Object.assign(settings, changed),
+        reflectSettings: () => {},
+        updateCameraButton: () => {},
+    };
+    vm.runInNewContext(match[0] + '\nthis.configure = configureJoinDevices;', sandbox);
+    sandbox.configure(null);
+    assert.equal(settings.audio, '');
+    assert.equal(settings.video, '');
+    assert.equal(settings.localMute, true);
+    sandbox.configure('mike');
+    assert.equal(settings.audio, 'default');
+    assert.equal(settings.video, '');
+    assert.equal(settings.localMute, false);
+    sandbox.configure('both');
+    assert.equal(settings.audio, 'default');
+    assert.equal(settings.video, 'default');
+    assert.equal(settings.localMute, false);
+});

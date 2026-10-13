@@ -2,6 +2,24 @@
 'use strict';
 (() => {
     const chinese = {
+    "Unraise hand": "放下手",
+    "Invite user": "邀请用户",
+    "Broadcast file": "播放文件",
+    "Restart media": "重新连接音视频",
+    "Forbid presenting": "禁止发言",
+    "Allow presenting": "允许发言",
+    "Kick out": "移出会议室",
+    "Identify": "查看身份",
+    "Delete message": "删除消息",
+    "You don't have permission to create tokens": "你没有创建邀请链接的权限",
+    "You don't have permission to edit or list tokens": "你没有管理邀请链接的权限",
+    "Couldn't find user": "找不到用户",
+    "Invalid date": "日期无效",
+    "Unknown join message": "未知入会消息",
+    "Unknown user": "未知用户",
+    "Stop screensharing": "停止屏幕共享",
+    "Play": "播放",
+    "Stop": "停止",
     "Language": "语言",
     "Group:": "会议室：",
     "Join": "加入会议",
@@ -212,6 +230,9 @@
     const textSources = new WeakMap();
     const attributeSources = new WeakMap();
     const patterns = [
+        [/^Delete all from (.+)$/, m => '删除来自 ' + m[1] + ' 的所有消息'],
+        [/^Identify (.+)$/, m => '查看 ' + m[1] + ' 的身份'],
+        [/^Kick out (.+)$/, m => '移出 ' + m[1]],
         [/^Camera (\d+)$/, m => '摄像头 ' + m[1]],
         [/^Microphone (\d+)$/, m => '麦克风 ' + m[1]],
         [/^\((\d+) clients?(, locked)?\)$/, m =>
