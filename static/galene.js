@@ -149,10 +149,9 @@ function reflectSettings() {
         store = true;
     }
 
+    // Drop the obsolete video/text mode, keeping all custom share settings.
     if(settings.hasOwnProperty('screenShareMode')) {
-        getSelectElement('screenshareselect').value = settings.screenShareMode;
-    } else {
-        settings.screenShareMode = getSelectElement('screenshareselect').value;
+        delete settings.screenShareMode;
         store = true;
     }
 
@@ -761,8 +760,8 @@ function getScreenShareProfile(settings) {
         size = [Math.round(width / 2) * 2, Math.round(height / 2) * 2];
     }
 
-    const mode = settings.screenShareMode === 'detail' ? 'detail' : 'motion';
-    let fps = mode === 'detail' ? 15 : 30;
+    // The FPS dropdown is the only frame-rate control. The default is 30.
+    let fps = 30;
     if(settings.screenShareFPS === 'custom')
         fps = Math.round(bounded(settings.screenShareCustomFPS, fps, 1, 120));
     else if(['15', '24', '30', '60', '90', '120'].includes(settings.screenShareFPS))
@@ -788,7 +787,7 @@ function getScreenShareProfile(settings) {
     return {
         video: video,
         bitrate: Math.round(bitrateMbps * 1000000),
-        contentHint: mode === 'detail' ? 'text' : 'motion',
+        contentHint: 'text',
     };
 }
 
@@ -821,12 +820,6 @@ getSelectElement('sendselect').onchange = async function(e) {
         throw new Error('Unexpected type for this');
     updateSettings({send: this.value});
     await reconsiderSendParameters();
-};
-
-getSelectElement('screenshareselect').onchange = function(e) {
-    if(!(this instanceof HTMLSelectElement))
-        throw new Error('Unexpected type for this');
-    updateSettings({screenShareMode: this.value});
 };
 
 /** Show custom fields without changing the existing sidebar layout. */

@@ -211,7 +211,7 @@ test('Simplified Chinese translations cover all settings, option labels and Engl
         ['Send:', '发送画质：'],
         ['normal', '标准'],
         ['Screen share (next share):', '下次屏幕共享：'],
-        ['smooth video', '流畅视频'],
+        ['Default (30 FPS)', '默认（30 FPS）'],
         ['Simulcast:', '分层编码：'],
         ['auto', '自动'],
         ['Receive:', '接收内容：'],
@@ -262,14 +262,14 @@ test('screen sharing profiles support native, presets, custom size, FPS and bitr
     assert.ok(source, 'screen share profile helper not found');
     const sandbox = {};
     vm.runInNewContext(source[0] + '\nthis.profile = getScreenShareProfile;', sandbox);
-    const defaults = sandbox.profile({screenShareMode: 'motion'});
+    const defaults = sandbox.profile({});
     assert.equal(defaults.video.frameRate.ideal, 30);
     assert.equal(defaults.video.width, undefined);
     assert.ok(defaults.bitrate > 15000000);
 
     const sharp = sandbox.profile({
-        screenShareMode: 'detail', screenShareResolution: '720p',
-        screenShareFPS: '15', screenShareBitrate: '8',
+        screenShareResolution: '720p', screenShareFPS: '15',
+        screenShareBitrate: '8',
     });
     assert.equal(sharp.video.width.ideal, 1280);
     assert.equal(sharp.video.height.max, 720);
@@ -334,8 +334,8 @@ test('capture passes chosen screen resolution and 60 FPS into getDisplayMedia', 
             return stream;
         }}},
         getSettings: () => ({
-            screenShareResolution: '2k', screenShareMode: 'motion',
-            screenShareFPS: '60', screenShareBitrate: '35',
+            screenShareResolution: '2k', screenShareFPS: '60',
+            screenShareBitrate: '35',
         }),
         isSafari: () => false,
         newUpStream: () => ({label: ''}),
@@ -353,7 +353,7 @@ test('capture passes chosen screen resolution and 60 FPS into getDisplayMedia', 
     assert.equal(constraints.video.width.ideal, 2560);
     assert.equal(constraints.video.height.ideal, 1440);
     assert.equal(constraints.video.frameRate.max, 60);
-    assert.equal(track.contentHint, 'motion');
+    assert.equal(track.contentHint, 'text');
     assert.equal(streamSent, stream);
     assert.equal(status, true);
 });
@@ -392,7 +392,9 @@ test('preferences persist between browser sessions and migrate older session set
     const migrated = createContext(older);
     assert.equal(migrated.getSaved().screenShareMode, 'detail');
     migrated.changeSaved({screenShareFPS: '24'});
-    assert.equal(JSON.parse(local.get('cat-galene-settings')).screenShareFPS, '24');
+    const updatedLegacy = JSON.parse(local.get('cat-galene-settings'));
+    assert.equal(updatedLegacy.screenShareFPS, '24');
+    assert.equal(updatedLegacy.screenShareMode, undefined);
 });
 
 test('sharing preference controls exist with translated labels', () => {
@@ -491,4 +493,63 @@ test('screen sharing prioritises resolution without changing webcams or bitrate'
         setParameters: async () => {throw Error('unsupported');},
     }];
     await assert.doesNotReject(sandbox.prefer(c));
+});
+
+test('only custom screen-sharing controls remain, without a hidden mode', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.doesNotMatch(html, /screenshareselect|smooth video|sharp text/);
+    assert.match(html, /value="auto" selected>Default \(30 FPS\)/);
+    assert.doesNotMatch(galene, /getSelectElement\('screenshareselect'\)/);
+
+    const match = galene.match(/function getScreenShareProfile\(settings\) \{[\s\S]*?\n\}\n/);
+    assert.ok(match);
+    const sandbox = {};
+    vm.runInNewContext(match[0] + '\nthis.getProfile = getScreenShareProfile;', sandbox);
+    const common = {screenShareResolution: '2k', screenShareFPS: '60',
+        screenShareBitrate: '35'};
+    const legacyMotion = sandbox.getProfile({...common, screenShareMode: 'motion'});
+    const legacyDetail = sandbox.getProfile({...common, screenShareMode: 'detail'});
+    for(const profile of [legacyMotion, legacyDetail, sandbox.getProfile(common)]) {
+        assert.equal(profile.video.width.ideal, 2560);
+        assert.equal(profile.video.height.ideal, 1440);
+        assert.equal(profile.video.frameRate.max, 60);
+        assert.equal(profile.bitrate, 35000000);
+        assert.equal(profile.contentHint, 'text');
+    }
+    const defaultProfile = sandbox.getProfile({screenShareFPS: 'auto', screenShareMode: 'detail'});
+    assert.equal(defaultProfile.video.frameRate.ideal, 30,
+        'old text-mode selection must not silently change the FPS');
+});
+
+test('meeting startup migrates old screen-share mode without losing saved preferences', () => {
+    const found = galene.match(/function reflectSettings\(\) \{[\s\S]*?\n\}\n/);
+    assert.ok(found, 'reflection function not found');
+    let saved = null;
+    const settings = {
+        audio: '', video: '', screenShareMode: 'detail',
+        screenShareResolution: '2k', screenShareFPS: '60',
+        screenShareBitrate: '35', screenShareCustomBitrate: 42.5,
+    };
+    const sandbox = {
+        getSettings: () => settings,
+        getSelectElement: id => {
+            assert.notEqual(id, 'screenshareselect', 'old mode must not be read');
+            return {value: 'auto'};
+        },
+        getInputElement: () => ({checked: false, value: '30',
+            min: '0', max: '10000'}),
+        selectOptionAvailable: () => true,
+        selectOptionDefault: () => '',
+        reflectScreenShareCustomFields: () => {},
+        setLocalMute: () => {},
+        storeSettings: next => {saved = {...next};},
+    };
+    vm.runInNewContext(found[0] + '\nthis.reflect = reflectSettings;', sandbox);
+    sandbox.reflect();
+    assert.ok(saved, 'old settings should be persisted after migration');
+    assert.equal(saved.screenShareMode, undefined);
+    assert.equal(saved.screenShareResolution, '2k');
+    assert.equal(saved.screenShareFPS, '60');
+    assert.equal(saved.screenShareBitrate, '35');
+    assert.equal(saved.screenShareCustomBitrate, 42.5);
 });

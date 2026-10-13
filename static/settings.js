@@ -27,7 +27,6 @@
  * @property {string} [audio]
  * @property {string} [simulcast]
  * @property {string} [send]
- * @property {string} [screenShareMode]
  * @property {string} [screenShareResolution]
  * @property {number} [screenShareWidth]
  * @property {number} [screenShareHeight]
@@ -62,6 +61,8 @@ let fallbackSettings = null;
  * @param {settings} settings
  */
 function storeSettings(settings) {
+    // Remove old format's redundant video/text preference on the next save.
+    delete settings.screenShareMode;
     let saved = false;
     const json = JSON.stringify(settings);
     try {
