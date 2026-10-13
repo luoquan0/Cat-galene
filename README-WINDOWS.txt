@@ -1,5 +1,10 @@
-Cat-galene Portable for Windows
+Cat-galene LEGACY Windows SERVER (not a meeting client)
 ================================
+
+NOTE: This file documents the old Windows server package from v1.2.1-cat.2.
+For a regular Windows meeting participant, download the NEW Windows client
+from v1.2.1-cat.3 or later. It uses Cat-galene-Client.exe and opens the
+Linux-hosted meeting in Edge/Chrome. See client/windows/README.md.
 
 1. Extract the entire ZIP to a writable folder (not just the EXE).
 2. Double-click start-windows.cmd, or open PowerShell in this folder.

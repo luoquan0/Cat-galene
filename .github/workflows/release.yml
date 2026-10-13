@@ -1,4 +1,4 @@
-name: Cross-platform Release
+name: Linux Server + Windows Client Release
 
 on:
   push:
@@ -28,16 +28,14 @@ jobs:
       - name: Run Windows tests
         run: go test ./...
 
-      - name: Verify Windows executables
+      - name: Verify Windows client executable
         shell: pwsh
         run: |
-          go build -trimpath -o galene.exe .
-          go build -trimpath -o galenectl.exe ./galenectl
-          ./galene.exe -help
-          ./galenectl.exe -help
+          go build -trimpath -o Cat-galene-Client.exe ./client/windows
+          ./Cat-galene-Client.exe -version
 
   release:
-    name: Test and package Linux + Windows
+    name: Test and package Linux server + Windows client
     needs: windows-smoke
     runs-on: ubuntu-latest
     steps:
@@ -68,7 +66,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.2" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.3" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -78,26 +76,28 @@ jobs:
           mkdir -p dist
           for target in linux:amd64 linux:arm64 windows:amd64 windows:arm64; do
             IFS=: read -r os arch <<< "${target}"
-            package="Cat-galene_${RELEASE_TAG}_${os}_${arch}"
+            if [[ "${os}" == "windows" ]]; then
+              package="Cat-galene_${RELEASE_TAG}_windows_client_${arch}"
+            else
+              package="Cat-galene_${RELEASE_TAG}_linux_server_${arch}"
+            fi
             root="${RUNNER_TEMP}/${package}"
             mkdir -p "${root}"
-            suffix=""
             if [[ "${os}" == "windows" ]]; then
-              suffix=".exe"
-            fi
-            CGO_ENABLED=0 GOOS="${os}" GOARCH="${arch}" \
-              go build -trimpath -ldflags="-s -w" -o "${root}/galene${suffix}" .
-            CGO_ENABLED=0 GOOS="${os}" GOARCH="${arch}" \
-              go build -trimpath -ldflags="-s -w" -o "${root}/galenectl${suffix}" ./galenectl
-            cp -R static "${root}/static"
-            cp README.md LICENCE galene.md galene-install.md \
-              galene-client.md galene-protocol.md galene-api.md "${root}/"
-            if [[ "${os}" == "windows" ]]; then
-              cp start-windows.cmd README-WINDOWS.txt "${root}/"
-              sed -i 's/\r$//; s/$/\r/' "${root}/start-windows.cmd"
+              CGO_ENABLED=0 GOOS=windows GOARCH="${arch}" \
+                go build -trimpath -ldflags="-s -w -H=windowsgui" \
+                -o "${root}/Cat-galene-Client.exe" ./client/windows
+              cp client/windows/README-CLIENT-WINDOWS.txt "${root}/"
               (cd "${RUNNER_TEMP}" && zip -qr \
                 "${GITHUB_WORKSPACE}/dist/${package}.zip" "${package}")
             else
+              CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
+                go build -trimpath -ldflags="-s -w" -o "${root}/galene" .
+              CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
+                go build -trimpath -ldflags="-s -w" -o "${root}/galenectl" ./galenectl
+              cp -R static "${root}/static"
+              cp README.md LICENCE galene.md galene-install.md \
+                galene-client.md galene-protocol.md galene-api.md "${root}/"
               tar -czf "dist/${package}.tar.gz" -C "${RUNNER_TEMP}" "${package}"
             fi
           done
@@ -114,7 +114,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene security and device-startup update (upstream Galene 1.2.1).
+          Cat-galene v1.2.1-cat.3: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -130,9 +130,12 @@ jobs:
           - Retains screen-share video/text modes and independent bitrate cap.
 
           Portable assets:
-          - Linux amd64 and arm64 tar.gz packages.
-          - Windows amd64 and arm64 ZIP archives with galene.exe, galenectl.exe,
-            static assets and start-windows.cmd.
+          - Linux amd64 and arm64 server tar.gz packages, including web UI.
+          - Windows amd64 and arm64 *client* ZIP archives; the Windows client
+            joins an existing Linux Galene server without running a server.
+          - The Windows app opens the meeting in a standalone Edge/Chrome window
+            so webcam, microphone and screen sharing use native browser WebRTC.
+            Microsoft Edge or Google Chrome must be installed on the computer.
           - SHA256SUMS.txt for file integrity verification.
 
           Note: In Safari, autoplay of received audio/video may require the user

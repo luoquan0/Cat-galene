@@ -1,5 +1,16 @@
 # The Galene videoconferencing system
 
+## Cat-galene downloads
+
+This fork publishes **Linux server** packages and separate **Windows
+meeting client** packages. The Windows client joins a remote Galene server;
+it does not run a conference server locally. It opens meeting URLs in a
+standalone Microsoft Edge or Google Chrome application window, retaining
+browser-native video, audio, and screen sharing. See
+[Windows client instructions](client/windows/README.md).
+
+Download packages from [Cat-galene Releases](https://github.com/luoquan0/Cat-galene/releases).
+
 Galene is a fully-featured videoconferencing system that is easy to deploy
 and requires very moderate server resources.  It is described at
 <https://galene.org>.
