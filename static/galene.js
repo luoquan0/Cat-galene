@@ -520,6 +520,7 @@ function setButtonsVisibility() {
     let mobilelayout = isMobileLayout();
 
     // don't allow multiple presentations
+    setVisibility('camerabutton', canPresent);
     setVisibility('presentbutton', canPresent && !local);
     setVisibility('unpresentbutton', local);
 
@@ -563,7 +564,8 @@ getSelectElement('videoselect').onchange = function(e) {
     if(!(this instanceof HTMLSelectElement))
         throw new Error('Unexpected type for this');
     updateSettings({video: this.value});
-    if(serverConnection && serverConnection.permissions.includes('present')) addLocalMedia(findUpMedia('camera')?.localId);
+    if(serverConnection?.permissions?.includes('present'))
+        addLocalMedia(findUpMedia('camera')?.localId);
     updateCameraButton();
 };
 
@@ -572,7 +574,8 @@ getSelectElement('audioselect').onchange = function(e) {
     if(!(this instanceof HTMLSelectElement))
         throw new Error('Unexpected type for this');
     updateSettings({audio: this.value});
-    if(serverConnection && serverConnection.permissions.includes('present')) addLocalMedia(findUpMedia('camera')?.localId);
+    if(serverConnection?.permissions?.includes('present'))
+        addLocalMedia(findUpMedia('camera')?.localId);
 };
 
 getInputElement('mirrorbox').onchange = function(e) {
@@ -610,27 +613,31 @@ getInputElement('hqaudiobox').onchange = function(e) {
 
 document.getElementById('mutebutton').onclick = async function(e) {
     e.preventDefault();
-    const settings = getSettings();
-    const current = findUpMedia('camera');
-    if(!settings.localMute && current?.stream?.getAudioTracks().length) {
-        setLocalMute(true, true);
+    if(!serverConnection?.permissions?.includes('present')) {
+        displayMessage('Connect to a meeting before enabling your microphone');
         return;
     }
-    if(!settings.audio) {
-        const choice = Array.from(getSelectElement('audioselect').options).find(o => o.value);
-        if(!choice) { displayMessage('No microphone available'); return; }
-        updateSettings({audio: choice.value});
-        getSelectElement('audioselect').value = choice.value;
+    let c = findUpMedia('camera');
+    let audio = c?.stream?.getAudioTracks().find(t => t.readyState === 'live');
+    if(audio) {
+        setLocalMute(!getSettings().localMute, true);
+        return;
+    }
+    // Device enumeration is not guaranteed until after the permission prompt.
+    // "default" requests the browser's preferred microphone without a device ID.
+    if(!getSettings().audio) {
+        updateSettings({audio: 'default'});
+        getSelectElement('audioselect').value = 'default';
     }
     setLocalMute(false, true);
-    if(!current?.stream?.getAudioTracks().length)
-        await addLocalMedia(current?.localId);
+    await addLocalMedia(c?.localId);
 };
 
 function updateCameraButton() {
     const button = document.getElementById('camerabutton');
     if(!button) return;
-    const enabled = !!getSettings().video;
+    const stream = findUpMedia('camera')?.stream;
+    const enabled = !!stream?.getVideoTracks().some(t => t.readyState === 'live');
     button.classList.toggle('muted', !enabled);
     button.querySelector('i').className = enabled ? 'fas fa-video' : 'fas fa-video-slash';
     button.setAttribute('aria-pressed', String(enabled));
@@ -638,21 +645,24 @@ function updateCameraButton() {
 
 document.getElementById('camerabutton').onclick = async function(e) {
     e.preventDefault();
-    if(!serverConnection || !serverConnection.permissions.includes('present')) return;
-    const settings = getSettings();
+    if(!serverConnection?.permissions?.includes('present')) return;
+    const c = findUpMedia('camera');
+    const enabled = !!c?.stream?.getVideoTracks().some(t => t.readyState === 'live');
     const select = getSelectElement('videoselect');
-    if(settings.video) {
-        updateSettings({video: ''});
-        select.value = '';
-    } else {
-        const choice = Array.from(select.options).find(o => o.value);
-        if(!choice) { displayMessage('No camera available'); return; }
-        updateSettings({video: choice.value});
-        select.value = choice.value;
-    }
+    updateSettings({video: enabled ? '' : (getSettings().video || 'default')});
+    select.value = getSettings().video;
+    await addLocalMedia(c?.localId);
     updateCameraButton();
-    await addLocalMedia(findUpMedia('camera')?.localId);
 };
+
+// Keep the camera control accessible without introducing a native button's
+// default padding, borders and line-height into the existing toolbar.
+document.getElementById('camerabutton').addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.currentTarget.click();
+    }
+});
 
 document.getElementById('sharebutton').onclick = function(e) {
     e.preventDefault();
@@ -1307,91 +1317,120 @@ function replaceCameraStream() {
 /**
  * @param {string} [localId]
  */
+/**
+ * Rebuild the outgoing stream while keeping unchanged audio/video tracks.
+ * Permissions are requested per media kind: a blocked camera must never
+ * prevent microphone-only use (or vice versa).
+ *
+ * @param {string} [localId]
+ */
 async function addLocalMedia(localId) {
-    let settings = getSettings();
+    const settings = getSettings();
+    const choice = {
+        audio: JSON.stringify([settings.audio, settings.preprocessing, settings.hqaudio]),
+        video: JSON.stringify([settings.video, settings.resolution, settings.blackboardMode]),
+    };
 
-    /** @type{boolean|MediaTrackConstraints} */
-    let audio = settings.audio ? {deviceId: settings.audio} : false;
-    /** @type{boolean|MediaTrackConstraints} */
-    let video = settings.video ? {deviceId: settings.video} : false;
-
+    /** @type {boolean|MediaTrackConstraints} */
+    let audio = settings.audio ?
+        (settings.audio === 'default' ? {} : {deviceId: settings.audio}) : false;
+    /** @type {boolean|MediaTrackConstraints} */
+    let video = settings.video ?
+        (settings.video === 'default' ? {} : {deviceId: settings.video}) : false;
     if(video) {
-        let resolution = settings.resolution;
-        if(resolution) {
-            video.width = { ideal: resolution[0] };
-            video.height = { ideal: resolution[1] };
+        if(settings.resolution) {
+            video.width = {ideal: settings.resolution[0]};
+            video.height = {ideal: settings.resolution[1]};
         } else if(settings.blackboardMode) {
-            video.width = { min: 640, ideal: 1920 };
-            video.height = { min: 400, ideal: 1080 };
+            video.width = {min: 640, ideal: 1920};
+            video.height = {min: 400, ideal: 1080};
         } else {
-            video.aspectRatio = { ideal: 4/3 };
+            video.aspectRatio = {ideal: 4 / 3};
         }
     }
-
-    if(audio) {
-        if(!settings.preprocessing) {
-            audio.echoCancellation = false;
-            audio.noiseSuppression = false;
-            audio.autoGainControl = false;
-        }
+    if(audio && !settings.preprocessing) {
+        audio.echoCancellation = false;
+        audio.noiseSuppression = false;
+        audio.autoGainControl = false;
     }
 
     if(!serverConnection) return;
-    let old = localId ? serverConnection.findByLocalId(localId) : null;
-    // Receive-only sessions must not request empty streams.
+    let old = localId ? serverConnection.findByLocalId(localId) :
+        findUpMedia('camera');
+    // In a receive-only session never ask the browser for an empty stream.
     if(!audio && !video) {
-        if(old)
-            old.close();
+        if(old) old.close();
+        setLocalMute(true, true);
+        updateCameraButton();
         setButtonsVisibility();
         return;
     }
     if(!serverConnection.permissions?.includes('present')) return;
-    if(old) {
-        // make sure that the camera is released before we try to reopen it
+
+    if(old)
         await removeFilter(old);
-        stopStream(old.stream);
+
+    const tracks = [];
+    for(const [kind, constraints] of [['audio', audio], ['video', video]]) {
+        const previous = old?.stream?.getTracks()
+            .find(t => t.kind === kind && t.readyState === 'live');
+        if(!constraints) {
+            if(previous) previous.stop();
+            continue;
+        }
+        if(previous && old.userdata?.captureSelection?.[kind] === choice[kind]) {
+            tracks.push(previous);
+            continue;
+        }
+        if(previous) previous.stop();
+        try {
+            const requested = kind === 'audio' ?
+                {audio: constraints, video: false} :
+                {audio: false, video: constraints};
+            const captured = await navigator.mediaDevices.getUserMedia(requested);
+            const track = captured.getTracks().find(t => t.kind === kind);
+            if(!track)
+                throw new Error('No ' + kind + ' track returned');
+            tracks.push(track);
+        } catch(e) {
+            console.error(e);
+            displayError(e);
+        }
     }
 
-    let constraints = {audio: audio, video: video};
-    /** @type {MediaStream} */
-    let stream = null;
-    try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-    } catch(e) {
-        displayError(e);
+    if(!tracks.length) {
+        if(old) old.close();
+        setLocalMute(true, true);
+        updateCameraButton();
+        setButtonsVisibility();
         return;
     }
 
+    const stream = new MediaStream(tracks);
     setMediaChoices(true);
-
     let c;
-
     try {
-        c = newUpStream(localId);
-    } catch(e) {
-        console.log(e);
-        displayError(e);
-        return;
-    }
-
-    c.label = 'camera';
-
-    if(video && settings.filter) {
-        let filter = filters[settings.filter];
-        if(filter)
-            c.userdata.filterDefinition = filter;
-        else
-            displayWarning(`Unknown filter ${settings.filter}`);
-    }
-
-    try {
+        c = newUpStream(old?.localId || localId);
+        c.label = 'camera';
+        c.userdata.captureSelection = choice;
+        if(video && settings.filter) {
+            const filter = filters[settings.filter];
+            if(filter)
+                c.userdata.filterDefinition = filter;
+            else
+                displayWarning(`Unknown filter ${settings.filter}`);
+        }
         await setUpStream(c, stream);
         await setMedia(c, settings.mirrorView);
     } catch(e) {
         console.error(e);
         displayError(e);
-        c.close();
+        if(c) c.close();
+        else stopStream(stream);
     }
+    if(!stream.getAudioTracks().length)
+        setLocalMute(true, true);
+    updateCameraButton();
     setButtonsVisibility();
 }
 

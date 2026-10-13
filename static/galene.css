@@ -1463,3 +1463,26 @@ header .collapse:hover {
 .toastify.info .toast-close {
     color: #000;
 }
+/* Keep the language picker compact in the existing meeting toolbar. */
+#header .language-label {
+    display: inline-block;
+    margin: 0 4px 0 12px;
+    color: #ebebeb;
+    font-size: 0.75rem;
+    line-height: 2.5em;
+}
+#header #language-select {
+    width: auto;
+    max-width: 105px;
+    padding: 2px 4px;
+    margin: 0;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #333333;
+    font-size: 0.75rem;
+}
+@media only screen and (max-width: 700px) {
+    #header .language-label { display: none; }
+    #header #language-select { max-width: 78px; }
+}
