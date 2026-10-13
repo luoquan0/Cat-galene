@@ -108,8 +108,8 @@ class ContextualItem{
             <li class='contextualJs contextualMenuItemOuter'>
                 <div class='contextualJs contextualMenuItem ${enabled == true ? '' : 'disabled'}'>
                     ${icon != ''? `<img src='${icon}' class='contextualJs contextualMenuItemIcon'/>` : `<div class='contextualJs contextualMenuItemIcon ${cssIcon != '' ? cssIcon : ''}'></div>`}
-                    <span class='contextualJs contextualMenuItemTitle'>${label == undefined? 'No label' : label}</span>
-                    <span class='contextualJs contextualMenuItemTip'>${shortcut == ''? '' : shortcut}</span>
+                    <span class='contextualJs contextualMenuItemTitle'>${contextualCore.EscapeText(label == undefined? 'No label' : label)}</span>
+                    <span class='contextualJs contextualMenuItemTip'>${contextualCore.EscapeText(shortcut)}</span>
                 </div>
             </li>`);               
 
@@ -129,7 +129,7 @@ class ContextualItem{
             <li class='contextualJs contextualHoverMenuOuter'>
                 <div class='contextualJs contextualHoverMenuItem ${enabled == true ? '' : 'disabled'}'>
                     ${icon != ''? `<img src='${icon}' class='contextualJs contextualMenuItemIcon'/>` : `<div class='contextualJs contextualMenuItemIcon ${cssIcon != '' ? cssIcon : ''}'></div>`}
-                    <span class='contextualJs contextualMenuItemTitle'>${label == undefined? 'No label' : label}</span>
+                    <span class='contextualJs contextualMenuItemTitle'>${contextualCore.EscapeText(label == undefined? 'No label' : label)}</span>
                     <span class='contextualJs contextualMenuItemOverflow'>></span>
                 </div>
                 <ul class='contextualJs contextualHoverMenu'>
@@ -170,7 +170,7 @@ class ContextualItem{
             <li class='contextualJs contextualMenuItemOuter'>
                 <div class='contextualJs contextualMenuItem ${enabled == true ? '' : 'disabled'}'>
                     ${icon != ''? `<img src='${icon}' class='contextualJs contextualMenuItemIcon'/>` : `<div class='contextualJs contextualMenuItemIcon ${cssIcon != '' ? cssIcon : ''}'></div>`}
-                    <span class='contextualJs contextualMenuItemTitle'>${label == undefined? 'No label' : label}</span>
+                    <span class='contextualJs contextualMenuItemTitle'>${contextualCore.EscapeText(label == undefined? 'No label' : label)}</span>
                     <span class='contextualJs contextualMenuItemOverflow'>
                         <span class='contextualJs contextualMenuItemOverflowLine'></span>
                         <span class='contextualJs contextualMenuItemOverflowLine'></span>
@@ -203,6 +203,10 @@ class ContextualItem{
 }
 
 const contextualCore = {
+    EscapeText: (value) => String(value).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+    }[c])),
     PositionMenu: (docked, el, menu) => {
         if(docked){
             menu.style.left = ((el.target.offsetLeft + menu.offsetWidth) >= window.innerWidth) ? 

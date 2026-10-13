@@ -168,7 +168,12 @@ func getJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 }
 
 func apiCORS(w http.ResponseWriter, r *http.Request, methods string) bool {
-	CheckOrigin(w, r, true)
+	if !CheckOrigin(w, r, true) ||
+		(r.Header.Get("Origin") == "" &&
+			r.Header.Get("Sec-Fetch-Site") == "cross-site") {
+		http.Error(w, "Forbidden origin", http.StatusForbidden)
+		return true
+	}
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Access-Control-Allow-Methods",
 			"OPTIONS, "+methods)
@@ -181,6 +186,16 @@ func apiCORS(w http.ResponseWriter, r *http.Request, methods string) bool {
 }
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
+	if !checkEntryRate(w, r) {
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("X-Frame-Options", "DENY")
+	if r.TLS != nil {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+	}
 	if !strings.HasPrefix(r.URL.Path, "/galene-api/") {
 		http.NotFound(w, r)
 		return

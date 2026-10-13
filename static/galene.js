@@ -401,7 +401,6 @@ function onPeerConnection() {
  */
 function gotClose(code, reason) {
     closeUpMedia();
-    closeSafariStream();
     setConnected(false);
     if(code !== 1000) {
         console.warn('Socket close', code, reason);
@@ -1302,6 +1301,13 @@ async function addLocalMedia(localId) {
     }
 
     let old = serverConnection.findByLocalId(localId);
+    // Receive-only sessions must not request empty streams.
+    if(!audio && !video) {
+        if(old)
+            old.close();
+        setButtonsVisibility();
+        return;
+    }
     if(old) {
         // make sure that the camera is released before we try to reopen it
         await removeFilter(old);
@@ -2327,29 +2333,6 @@ function setTitle(title) {
 }
 
 /**
- * Under Safari, we request access to the camera at startup in order to
- * enable autoplay.  The camera stream is stored in safariStream.
- *
- * @type {MediaStream}
- */
-let safariStream = null;
-
-async function openSafariStream() {
-    if(!isSafari())
-        return;
-
-    if(!safariStream)
-        safariStream = await navigator.mediaDevices.getUserMedia({audio: true})
-}
-
-async function closeSafariStream() {
-    if(!safariStream)
-        return;
-    stopStream(safariStream);
-    safariStream = null;
-}
-
-/**
  * @this {ServerConnection}
  * @param {string} kind
  * @param {string} group
@@ -2372,18 +2355,15 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
             token = null;
             displayError('The server said: ' + message);
         }
-        closeSafariStream();
         this.close();
         setButtonsVisibility();
         return;
     case 'redirect':
-        closeSafariStream();
         this.close();
         token = null;
         document.location.href = message;
         return;
     case 'leave':
-        closeSafariStream();
         this.close();
         setButtonsVisibility();
         setChangePassword(null);
@@ -2394,7 +2374,6 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
             probingState = 'success';
             setVisibility('userform', false);
             setVisibility('passwordform', false);
-            closeSafariStream();
             this.close();
             setButtonsVisibility();
             return;
@@ -2410,14 +2389,13 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
         setChangePassword(pwAuth && !!groupStatus.canChangePassword &&
                           serverConnection.username
         );
-        openSafariStream();
+        // Do not request microphone access merely to enable Safari autoplay.
         if(kind === 'change')
             return;
         break;
     default:
         token = null;
         displayError('Unknown join message');
-        closeSafariStream();
         this.close();
         return;
     }
@@ -3960,6 +3938,8 @@ document.getElementById('test-camera').ontoggle = async function(e) {
             await cameraTest.setAnalyser();
         }
     } else {
+        if(!cameraTest)
+            return;
         try {
             await cameraTest.stopStream();
             await cameraTest.setAnalyser();

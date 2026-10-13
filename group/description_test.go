@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -231,7 +232,8 @@ func TestWritableGroups(t *testing.T) {
 	if err != nil {
 		t.Errorf("Stat: %v", err)
 	}
-	if mode := fi.Mode(); mode != 0o600 {
+	// Windows exposes synthetic mode bits rather than Unix file permissions.
+	if mode := fi.Mode().Perm(); runtime.GOOS != "windows" && mode != 0o600 {
 		t.Errorf("Mode is 0o%03o (expected 0o600)\n", mode)
 	}
 

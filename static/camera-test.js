@@ -21,27 +21,6 @@
 
 'use strict';
 
-/**
- * Get a set of constraints for requesting camera and microphone permissions.
- *
- * @returns {Promise<MediaStreamConstraints>}
- */
-async function getPermissionsConstraints() {
-    let video = false, audio = false;
-    let devices = await navigator.mediaDevices.enumerateDevices();
-    devices.forEach(d => {
-        if(d.kind === 'videoinput')
-            video = true;
-        else if(d.kind === 'audioinput')
-            audio = true;
-    });
-    let res = {};
-    if(audio)
-        res['audio'] = true;
-    if(video)
-        res['video'] = true;
-    return res;
-}
 
 /**
  * CameraTest encapsulates the camera and video test UI.
@@ -145,9 +124,11 @@ CameraTest.prototype.setStream = async function(force) {
 
     let constraints = {audio: a, video: v};
     try {
-        let stream = await navigator.mediaDevices.getUserMedia(constraints);
-        this.video.srcObject = stream;
-        await this.video.play();
+        if(a || v) {
+            let stream = await navigator.mediaDevices.getUserMedia(constraints);
+            this.video.srcObject = stream;
+            await this.video.play();
+        }
     } finally {
         if(old)
             stopStream(old);
@@ -194,7 +175,7 @@ CameraTest.prototype.stopAnalyser = async function() {
 }
 
 CameraTest.prototype.setAnalyser = async function() {
-    if(this.video.srcObject) {
+    if(this.video.srcObject && this.video.srcObject.getAudioTracks().length) {
         await this.startAnalyser();
     } else {
         await this.stopAnalyser();
@@ -252,32 +233,22 @@ CameraTest.prototype.drawFFT = function() {
 }
 
 CameraTest.prototype.setMediaChoices = async function() {
-    let ds = await getPermissionsConstraints();
-    if(!('video' in ds || 'audio' in ds))
-        throw new Error('No device detected');
-    let stream = await navigator.mediaDevices.getUserMedia(ds);
-
-    try {
-        await new Promise((resolve, reject) => setTimeout(resolve, 200));
-        let devices = await navigator.mediaDevices.enumerateDevices();
-
-        let cn = 1, mn = 1;
-
-        devices.forEach(d => {
-            let label = d.label;
-            if(d.kind === 'videoinput') {
-                if(!label)
-                    label = `Camera ${cn}`;
-                addSelectOption(this.videoselect, label, d.deviceId);
-                cn++;
-            } else if(d.kind === 'audioinput') {
-                if(!label)
-                    label = `Microphone ${mn}`;
-                addSelectOption(this.audioselect, label, d.deviceId);
-                mn++;
-            }
-        });
-    } finally {
-        stopStream(stream);
-    }
+    // Listing devices should not request permission for devices the user
+    // does not intend to use (or which are unavailable).
+    let devices = await navigator.mediaDevices.enumerateDevices();
+    let cn = 1, mn = 1;
+    devices.forEach(d => {
+        let label = d.label;
+        if(d.kind === 'videoinput') {
+            if(!label)
+                label = `Camera ${cn}`;
+            addSelectOption(this.videoselect, label, d.deviceId);
+            cn++;
+        } else if(d.kind === 'audioinput') {
+            if(!label)
+                label = `Microphone ${mn}`;
+            addSelectOption(this.audioselect, label, d.deviceId);
+            mn++;
+        }
+    });
 }

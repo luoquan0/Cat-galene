@@ -101,7 +101,13 @@ func cspHeader(w http.ResponseWriter, connect string) {
 		c = "connect-src " + connect + " ws: wss: 'self'; "
 	}
 	w.Header().Add("Content-Security-Policy",
-		c+"img-src 'self'; media-src blob: 'self'; script-src 'unsafe-eval' 'self'; default-src 'self'")
+		c+"img-src 'self'; media-src blob: 'self'; script-src 'self' 'wasm-unsafe-eval'; "+
+			"default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+
+	w.Header().Set("X-Frame-Options", "DENY")
+	if !Insecure {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+	}
 
 	// Make browser stop sending referrer information
 	w.Header().Add("Referrer-Policy", "no-referrer")
@@ -525,7 +531,9 @@ func CheckOrigin(w http.ResponseWriter, r *http.Request, admin bool) bool {
 
 	ok := false
 	o, err := url.Parse(origin)
-	if err == nil && strings.EqualFold(o.Host, r.Host) {
+	if err == nil && (o.Scheme == "http" || o.Scheme == "https") &&
+		o.User == nil && o.Path == "" && o.RawQuery == "" && o.Fragment == "" &&
+		strings.EqualFold(o.Host, r.Host) && (r.TLS == nil || o.Scheme == "https") {
 		ok = true
 	} else {
 		conf, err := group.GetConfiguration()
@@ -563,6 +571,9 @@ var wsUpgrader = websocket.Upgrader{
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	if !checkEntryRate(w, r) {
+		return
+	}
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Websocket upgrade: %v", err)
@@ -586,6 +597,10 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func recordingsHandler(w http.ResponseWriter, r *http.Request) {
+	if !checkEntryRate(w, r) {
+		return
+	}
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if redirect(w, r) {
 		return
 	}
@@ -661,6 +676,10 @@ func recordingsHandler(w http.ResponseWriter, r *http.Request) {
 
 	if filename == "" {
 		if r.Method == "POST" {
+			if !sameSiteRecordingRequest(r) {
+				http.Error(w, "Forbidden origin", http.StatusForbidden)
+				return
+			}
 			handleGroupAction(w, r, group)
 		} else {
 			serveGroupRecordings(w, r, f, group)
@@ -700,6 +719,10 @@ func handleGroupAction(w http.ResponseWriter, r *http.Request, group string) {
 			strings.ContainsRune(filename, filepath.Separator) {
 			http.Error(w, "Bad character in filename",
 				http.StatusBadRequest)
+			return
+		}
+		if !validRecordingCSRF(r, group, filename, r.Form.Get("csrf")) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 			return
 		}
 		root, err := os.OpenRoot(diskwriter.Directory)
@@ -780,13 +803,15 @@ func serveGroupRecordings(w http.ResponseWriter, r *http.Request, f *os.File, gr
 
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 	w.Header().Set("cache-control", "no-cache")
+	cspHeader(w, "")
 
 	if r.Method == "HEAD" {
 		return
 	}
 
 	fmt.Fprintf(w, "<!DOCTYPE html>\n<html><head>\n")
-	fmt.Fprintf(w, "<title>Recordings for group %v</title>\n", group)
+	fmt.Fprintf(w, "<title>Recordings for group %v</title>\n",
+		html.EscapeString(group))
 	fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/common.css\"/>")
 	fmt.Fprintf(w, "</head><body>\n")
 
@@ -796,16 +821,18 @@ func serveGroupRecordings(w http.ResponseWriter, r *http.Request, f *os.File, gr
 			continue
 		}
 		fmt.Fprintf(w, "<tr><td><a href=\"./%v\">%v</a></td><td>%d</td>",
-			html.EscapeString(fi.Name()),
+			html.EscapeString(url.PathEscape(fi.Name())),
 			html.EscapeString(fi.Name()),
 			fi.Size(),
 		)
 		fmt.Fprintf(w,
 			"<td><form action=\"/recordings/%v/\" method=\"post\">"+
 				"<input type=\"hidden\" name=\"filename\" value=\"%v\">"+
+				"<input type=\"hidden\" name=\"csrf\" value=\"%v\">"+
 				"<button type=\"submit\" name=\"q\" value=\"delete\">Delete</button>"+
 				"</form></td></tr>\n",
-			url.PathEscape(group), html.EscapeString(fi.Name()))
+			url.PathEscape(group), html.EscapeString(fi.Name()),
+			recordingCSRFToken(r, group, fi.Name()))
 	}
 	fmt.Fprintf(w, "</table>\n")
 	fmt.Fprintf(w, "</body></html>\n")
