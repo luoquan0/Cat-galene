@@ -25,6 +25,7 @@ test('joining with no devices selected never requests an empty media stream', as
     const sandbox = {
         getSettings: () => ({video: '', audio: ''}),
         serverConnection: {findByLocalId: () => null},
+        findUpMedia: () => null,
         setButtonsVisibility: () => { updated = true; },
         setLocalMute: () => {},
         updateCameraButton: () => {},
@@ -153,7 +154,12 @@ test('camera-only acquisition survives denied microphone access and later turns 
         newUpStream: id => {
             if(active) active.close(true);
             active = {userdata: {}, localId: id || 'test', stream: null,
-                close(replace) {if(!replace) active = null;}};
+                close(replace) {
+                    if(!replace) {
+                        if(this.stream) this.stream.getTracks().forEach(t => t.stop());
+                        active = null;
+                    }
+                }};
             return active;
         },
         setUpStream: async (c, s) => {c.stream = s;},
