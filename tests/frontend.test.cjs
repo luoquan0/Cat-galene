@@ -404,3 +404,59 @@ test('sharing preference controls exist with translated labels', () => {
     assert.match(i18n, /"Capture resolution:": "采集分辨率："/);
     assert.match(i18n, /"Share bitrate:": "共享码率："/);
 });
+
+test('receiver never auto-downgrades shared screens when the player is small', () => {
+    const found = galene.match(/function reconsiderDownRate\(id\) \{[\s\S]*?\n\}\n\nlet reconsiderDownRateTimer/);
+    assert.ok(found, 'could not extract the receive-quality logic');
+    const requests = [];
+    const media = {scrollWidth: 160, scrollHeight: 90};
+    const stream = {
+        label: 'screenshare', localId: 'peer-one',
+        userdata: {requested: {}},
+        request(value) {requests.push(value);},
+    };
+    let preference = 'everything';
+    const sandbox = {
+        serverConnection: {down: {'one': stream}},
+        getSettings: () => ({request: preference}),
+        mapRequestLabel: value => value === 'everything-low' ?
+            ['audio', 'video-low'] : ['audio', 'video'],
+        mapVideoToLow: tracks => tracks.includes('video') ?
+            tracks.map(t => t === 'video' ? 'video-low' : t) : null,
+        document: {getElementById: () => media},
+    };
+    vm.runInNewContext(found[0].replace(/\n\nlet reconsiderDownRateTimer$/, '') +
+        '\nthis.updateReceiveQuality = reconsiderDownRate;', sandbox);
+
+    sandbox.updateReceiveQuality('one');
+    assert.equal(requests.length, 0, 'small screen shares should remain high quality');
+    assert.equal(stream.userdata.requested.low, undefined);
+
+    // Old sessions might already have requested the low-resolution layer.
+    stream.userdata.requested.low = true;
+    sandbox.updateReceiveQuality('one');
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0], null, 'reset prior low-quality stream override');
+    assert.equal(stream.userdata.requested.low, false);
+    sandbox.updateReceiveQuality('one');
+    assert.equal(requests.length, 1, 'do not repeatedly renegotiate');
+
+    // Keep existing quality-saving behaviour for participant webcams.
+    stream.label = 'camera';
+    sandbox.updateReceiveQuality('one');
+    assert.deepEqual(Array.from(requests[1]), ['audio', 'video-low']);
+    assert.equal(stream.userdata.requested.low, true);
+    media.scrollWidth = 1280;
+    media.scrollHeight = 720;
+    sandbox.updateReceiveQuality('one');
+    assert.equal(requests[2], null);
+    assert.equal(stream.userdata.requested.low, false);
+
+    // A user's explicit low-quality receive setting must still be honoured.
+    stream.label = 'screenshare';
+    preference = 'everything-low';
+    media.scrollWidth = 160;
+    media.scrollHeight = 90;
+    sandbox.updateReceiveQuality('one');
+    assert.equal(requests.length, 3);
+});

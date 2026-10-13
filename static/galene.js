@@ -1800,6 +1800,17 @@ function reconsiderDownRate(id) {
         return;
 
     let old = c.userdata.requested;
+    // Even when shown as a small tile, a screen share must stay on the
+    // full-resolution stream.  Scaling an entire desktop down makes its
+    // text unreadable.  Keep explicit "low quality" receive preferences.
+    if(c.label === 'screenshare') {
+        if(old && old.low) {
+            old.low = false;
+            c.request(null);
+        }
+        return;
+    }
+
     let low = false;
     if(old && ('force' in old)) {
         low = old.force;
