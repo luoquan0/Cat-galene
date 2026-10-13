@@ -33,6 +33,7 @@
                   <i class="fas fa-align-left" aria-hidden="true"></i>
                 </div>
                 <h1 id="title" class="header-title">Galène</h1>
+                <label for="language-select">Language</label><select id="language-select" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
               </div>
 
               <ul class="nav-menu">
@@ -46,6 +47,7 @@
                     <i class="fas fa-stop" aria-hidden="true"></i><span class="nav-text"> Disable</span>
                   </button>
                 </li>
+                <li><button id="camerabutton" type="button" class="nav-link nav-button" aria-label="Camera" title="Camera" aria-pressed="false"><i class="fas fa-video-slash" aria-hidden="true"></i><span class="nav-text"> Camera</span></button></li>
                 <li>
                   <div id="mutebutton" class="nav-link nav-button">
                     <span><i class="fas fa-microphone-slash" aria-hidden="true"></i></span>
@@ -332,5 +334,6 @@
     <script src="/filter.js" defer></script>
     <script src="/camera-test.js" defer></script>
     <script src="/galene.js" defer></script>
+    <script src="/i18n.js" defer></script>
   </body>
 </html>
