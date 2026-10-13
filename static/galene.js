@@ -563,7 +563,8 @@ getSelectElement('videoselect').onchange = function(e) {
     if(!(this instanceof HTMLSelectElement))
         throw new Error('Unexpected type for this');
     updateSettings({video: this.value});
-    replaceCameraStream();
+    if(serverConnection && serverConnection.permissions.includes('present')) addLocalMedia(findUpMedia('camera')?.localId);
+    updateCameraButton();
 };
 
 getSelectElement('audioselect').onchange = function(e) {
@@ -571,7 +572,7 @@ getSelectElement('audioselect').onchange = function(e) {
     if(!(this instanceof HTMLSelectElement))
         throw new Error('Unexpected type for this');
     updateSettings({audio: this.value});
-    replaceCameraStream();
+    if(serverConnection && serverConnection.permissions.includes('present')) addLocalMedia(findUpMedia('camera')?.localId);
 };
 
 getInputElement('mirrorbox').onchange = function(e) {
@@ -607,15 +608,50 @@ getInputElement('hqaudiobox').onchange = function(e) {
     replaceCameraStream();
 };
 
-document.getElementById('mutebutton').onclick = function(e) {
+document.getElementById('mutebutton').onclick = async function(e) {
     e.preventDefault();
-    let localMute = getSettings().localMute;
-    if (localMute && !findUpMedia('camera')) {
-        displayMessage('Please use Enable to enable your camera or microphone.');
-    } else {
-        localMute = !localMute;
-        setLocalMute(localMute, true);
+    const settings = getSettings();
+    const current = findUpMedia('camera');
+    if(!settings.localMute && current?.stream?.getAudioTracks().length) {
+        setLocalMute(true, true);
+        return;
     }
+    if(!settings.audio) {
+        const choice = Array.from(getSelectElement('audioselect').options).find(o => o.value);
+        if(!choice) { displayMessage('No microphone available'); return; }
+        updateSettings({audio: choice.value});
+        getSelectElement('audioselect').value = choice.value;
+    }
+    setLocalMute(false, true);
+    if(!current?.stream?.getAudioTracks().length)
+        await addLocalMedia(current?.localId);
+};
+
+function updateCameraButton() {
+    const button = document.getElementById('camerabutton');
+    if(!button) return;
+    const enabled = !!getSettings().video;
+    button.classList.toggle('muted', !enabled);
+    button.querySelector('i').className = enabled ? 'fas fa-video' : 'fas fa-video-slash';
+    button.setAttribute('aria-pressed', String(enabled));
+}
+
+document.getElementById('camerabutton').onclick = async function(e) {
+    e.preventDefault();
+    if(!serverConnection || !serverConnection.permissions.includes('present')) return;
+    const settings = getSettings();
+    const select = getSelectElement('videoselect');
+    if(settings.video) {
+        updateSettings({video: ''});
+        select.value = '';
+    } else {
+        const choice = Array.from(select.options).find(o => o.value);
+        if(!choice) { displayMessage('No camera available'); return; }
+        updateSettings({video: choice.value});
+        select.value = choice.value;
+    }
+    updateCameraButton();
+    await addLocalMedia(findUpMedia('camera')?.localId);
 };
 
 document.getElementById('sharebutton').onclick = function(e) {
@@ -1300,7 +1336,8 @@ async function addLocalMedia(localId) {
         }
     }
 
-    let old = serverConnection.findByLocalId(localId);
+    if(!serverConnection || !serverConnection.permissions.includes('present')) return;
+    let old = localId ? serverConnection.findByLocalId(localId) : null;
     // Receive-only sessions must not request empty streams.
     if(!audio && !video) {
         if(old)
@@ -2423,6 +2460,7 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
             else if(present === 'both')
                 delSetting('video');
             reflectSettings();
+            updateCameraButton();
 
             let button = getButtonElement('presentbutton');
             button.disabled = true;
@@ -4104,6 +4142,7 @@ async function start() {
     addFilters();
     await setMediaChoices(false);
     reflectSettings();
+    updateCameraButton();
 
     if(parms.has('token'))
         token = parms.get('token');
