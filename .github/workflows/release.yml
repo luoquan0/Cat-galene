@@ -67,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.10" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.11" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -115,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.10: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.11: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -145,6 +145,11 @@ jobs:
           - Removed the conflicting smooth-video/sharp-text share mode.
             Independent resolution, FPS and bitrate settings are the only
             controls; text clarity remains prioritised, including old settings.
+          - Screen-share congestion estimation starts at a higher bitrate and
+            probes capacity faster while respecting packet loss and receiver
+            REMB feedback; camera bandwidth estimation is unchanged.
+          - Displays actual outbound encoding resolution, FPS, Mbps and
+            limitation reason when reported by the browser.
 
           Portable assets:
           - Linux amd64 and arm64 server tar.gz packages, including web UI.

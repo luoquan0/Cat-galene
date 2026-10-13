@@ -315,12 +315,30 @@ func (down *rtpDownTrack) write(buf []byte) (int, error) {
 	return n, err
 }
 
+// Screen shares use a higher initial bandwidth estimate than cameras.
+// Congestion control still follows receiver loss and REMB feedback.
+func (t *rtpDownTrack) isScreenShare() bool {
+	return t.conn != nil && t.conn.remote != nil &&
+		t.conn.remote.Label() == "screenshare"
+}
+
+func (t *rtpDownTrack) initialBitrate() uint64 {
+	if t.isScreenShare() {
+		return initialScreenShareBitrate
+	}
+	return initLossRate
+}
+
 func (t *rtpDownTrack) GetMaxBitrate() (uint64, int, int) {
 	now := rtptime.Jiffies()
 	layer := t.getLayerInfo()
 	r := t.maxBitrate.Get(now)
 	if r == ^uint64(0) {
-		r = 512 * 1024
+		if t.isScreenShare() {
+			r = initialScreenShareBitrate
+		} else {
+			r = 512 * 1024
+		}
 	}
 	rr := t.maxREMBBitrate.Get(now)
 	if rr != 0 && rr < r {
@@ -1111,25 +1129,30 @@ func rtcpDownSender(conn *rtpDownConnection) {
 }
 
 const (
-	minLossRate  = 9600
-	initLossRate = 512 * 1000
-	maxLossRate  = 1 << 30
+	minLossRate                 = 9600
+	initLossRate                = 512 * 1000
+	initialScreenShareBitrate   = 3 * 1000 * 1000
+	maxLossRate                 = 1 << 30
 )
 
 func (track *rtpDownTrack) updateRate(loss uint8, now uint64) {
 	rate := track.maxBitrate.Get(now)
 	if rate < minLossRate || rate > maxLossRate {
-		// no recent feedback, reset
-		rate = initLossRate
+		// No recent feedback; restart from the per-stream estimate.
+		rate = track.initialBitrate()
 	}
 	if loss < 5 {
-		// if our actual rate is low, then we're not probing the
-		// bottleneck
+		// Only probe higher if the sender is actually using most of
+		// the available bandwidth. Screen shares climb faster when
+		// the content starts moving; cameras retain the old ramp.
 		r, _ := track.rate.Estimate()
 		actual := 8 * uint64(r)
 		if actual >= (rate*3)/4 {
-			// loss < 0.02, multiply by 1.05
-			rate = rate * 269 / 256
+			if track.isScreenShare() {
+				rate = rate * 294 / 256
+			} else {
+				rate = rate * 269 / 256
+			}
 			if rate > maxLossRate {
 				rate = maxLossRate
 			}

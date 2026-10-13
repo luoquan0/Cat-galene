@@ -953,11 +953,57 @@ getInputElement('displayallbox').onchange = function(e) {
 
 
 /**
+ * Summarise actual outbound encoder stats for the local screen-share panel.
+ * These metrics can differ substantially from the requested capture profile.
+ *
+ * @param {Record<string,any>} stats
+ * @returns {string}
+ */
+function formatScreenShareStats(stats) {
+    let video = null;
+    for(const entry of Object.values(stats)) {
+        const candidate = entry && entry['outbound-rtp'];
+        if(candidate && candidate.kind === 'video' &&
+           (!video || (candidate.rate || 0) > (video.rate || 0)))
+            video = candidate;
+    }
+    if(!video)
+        return 'Waiting for encoder statistics';
+
+    const info = [];
+    if(Number.isFinite(video.frameWidth) && video.frameWidth > 0 &&
+       Number.isFinite(video.frameHeight) && video.frameHeight > 0)
+        info.push(Math.round(video.frameWidth) + ' × ' +
+                  Math.round(video.frameHeight));
+    if(Number.isFinite(video.framesPerSecond) && video.framesPerSecond >= 0)
+        info.push(Math.round(video.framesPerSecond) + ' FPS');
+    if(Number.isFinite(video.rate) && video.rate >= 0)
+        info.push((video.rate / 1000000).toFixed(1) + ' Mbps');
+
+    const limitation = {
+        cpu: 'CPU limit',
+        bandwidth: 'Network limit',
+        other: 'Encoding limit',
+    }[video.qualityLimitationReason];
+    if(limitation) {
+        const translate = window.CatGaleneI18n?.translate;
+        info.push(translate ? translate(limitation) : limitation);
+    }
+    return info.length ? info.join(' · ') : 'Waiting for encoder statistics';
+}
+
+/**
  * @this {Stream}
  * @param {Record<string,any>} stats
  */
 function gotUpStats(stats) {
     let c = this;
+
+    if(c.label === 'screenshare') {
+        const status = document.getElementById('screen-share-stats');
+        if(status)
+            status.textContent = formatScreenShareStats(stats);
+    }
 
     let values = [];
 
@@ -1304,6 +1350,11 @@ async function setUpStream(c, stream) {
             stopStream(c.stream);
             if(c.userdata.onclose)
                 c.userdata.onclose.call(c);
+            if(c.label === 'screenshare') {
+                const status = document.getElementById('screen-share-stats');
+                if(status)
+                    status.textContent = 'Not sharing';
+            }
             delMedia(c.localId);
         }
     }

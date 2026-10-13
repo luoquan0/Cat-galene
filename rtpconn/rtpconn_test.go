@@ -54,3 +54,53 @@ func TestSadd(t *testing.T) {
 		}
 	}
 }
+func TestScreenShareStartsWithUsefulBitrate(t *testing.T) {
+	for _, test := range []struct {
+		label string
+		want  uint64
+	}{
+		{"screenshare", initialScreenShareBitrate},
+		{"camera", 512 * 1024},
+		{"video", 512 * 1024},
+	} {
+		track := &rtpDownTrack{
+			conn: &rtpDownConnection{
+				remote: &rtpUpConnection{label: test.label},
+			},
+			atomics:        &downTrackAtomics{},
+			maxBitrate:     new(bitrate),
+			maxREMBBitrate: new(bitrate),
+		}
+		got, _, _ := track.GetMaxBitrate()
+		if got != test.want {
+			t.Errorf("%s: startup estimate %d, want %d", test.label, got, test.want)
+		}
+
+		// Moderate loss is not a congestion event; its first report
+		// must preserve the chosen startup rate.
+		track.updateRate(10, rtptime.Jiffies())
+		got = track.maxBitrate.Get(rtptime.Jiffies())
+		initial := uint64(initLossRate)
+		if test.label == "screenshare" {
+			initial = initialScreenShareBitrate
+		}
+		if got != initial {
+			t.Errorf("%s: initial loss estimate %d, want %d",
+				test.label, got, initial)
+		}
+
+		// Explicit receiver bandwidth feedback must still cap the
+		// share's requested bitrate.
+		track.maxREMBBitrate.Set(250000, rtptime.Jiffies())
+		got, _, _ = track.GetMaxBitrate()
+		if got != 250000 {
+			t.Errorf("%s: receiver estimate ignored: %d", test.label, got)
+		}
+
+		track.updateRate(80, rtptime.Jiffies())
+		reduced := track.maxBitrate.Get(rtptime.Jiffies())
+		if reduced >= initial {
+			t.Errorf("%s: loss failed to lower estimate: %d", test.label, reduced)
+		}
+	}
+}

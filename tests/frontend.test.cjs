@@ -553,3 +553,47 @@ test('meeting startup migrates old screen-share mode without losing saved prefer
     assert.equal(saved.screenShareBitrate, '35');
     assert.equal(saved.screenShareCustomBitrate, 42.5);
 });
+
+
+test('outgoing screen-share stats show measured size, FPS, bitrate and limitation', () => {
+    const source = galene.match(/function formatScreenShareStats\(stats\) \{[\s\S]*?\n\}\n/);
+    assert.ok(source, 'missing measured screen-share quality');
+    const sandbox = {
+        window: {CatGaleneI18n: {translate: value =>
+            value === 'Network limit' ? '网络带宽限制' : value}},
+    };
+    vm.runInNewContext(source[0] +
+        '\nthis.formatShare = formatScreenShareStats;', sandbox);
+
+    const stats = {
+        video: {'outbound-rtp': {
+            kind: 'video', frameWidth: 2560, frameHeight: 1440,
+            framesPerSecond: 46.7, rate: 6850000,
+            qualityLimitationReason: 'bandwidth',
+        }},
+        audio: {'outbound-rtp': {kind: 'audio', rate: 128000}},
+    };
+    assert.equal(sandbox.formatShare(stats),
+        '2560 × 1440 · 47 FPS · 6.8 Mbps · 网络带宽限制');
+    assert.equal(sandbox.formatShare({}), 'Waiting for encoder statistics');
+    assert.equal(sandbox.formatShare({
+        video: {'outbound-rtp': {kind: 'video', rate: 1900000}},
+    }), '1.9 Mbps');
+    assert.equal(sandbox.formatShare({
+        audio: {'outbound-rtp': {kind: 'audio', rate: 128000}},
+    }), 'Waiting for encoder statistics');
+});
+
+test('WebRTC stats capture actual outgoing encoding metrics and UI remains translated', () => {
+    const protocol = fs.readFileSync('static/protocol.js', 'utf8');
+    for(const field of ['kind', 'frameWidth', 'frameHeight',
+        'framesPerSecond', 'qualityLimitationReason'])
+        assert.ok(protocol.includes('stats[id][r.type].' + field + ' = '),
+            'missing outbound encoder metric: ' + field);
+
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.match(html, /id="screen-share-stats"/);
+    const i18n = fs.readFileSync('static/i18n.js', 'utf8');
+    assert.match(i18n, /"Actual outgoing quality:": "实际发送画质："/);
+    assert.match(i18n, /"Not sharing": "未开始屏幕共享"/);
+});

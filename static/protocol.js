@@ -1514,6 +1514,13 @@ Stream.prototype.updateStats = async function() {
                     stats[id][r.type] = {};
                     stats[id][r.type].timestamp = r.timestamp;
                     stats[id][r.type].bytesSent = r.bytesSent;
+                    // Expose actual encoded screen-share quality, not merely
+                    // the capture settings requested by the user.
+                    stats[id][r.type].kind = t.sender.track.kind;
+                    stats[id][r.type].frameWidth = r.frameWidth;
+                    stats[id][r.type].frameHeight = r.frameHeight;
+                    stats[id][r.type].framesPerSecond = r.framesPerSecond;
+                    stats[id][r.type].qualityLimitationReason = r.qualityLimitationReason;
                     if(old[id] && old[id][r.type])
                         stats[id][r.type].rate =
                         ((r.bytesSent - old[id][r.type].bytesSent) * 1000 /
