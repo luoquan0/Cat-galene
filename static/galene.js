@@ -1336,7 +1336,7 @@ async function addLocalMedia(localId) {
         }
     }
 
-    if(!serverConnection || !serverConnection.permissions.includes('present')) return;
+    if(!serverConnection) return;
     let old = localId ? serverConnection.findByLocalId(localId) : null;
     // Receive-only sessions must not request empty streams.
     if(!audio && !video) {
@@ -1345,6 +1345,7 @@ async function addLocalMedia(localId) {
         setButtonsVisibility();
         return;
     }
+    if(!serverConnection.permissions?.includes('present')) return;
     if(old) {
         // make sure that the camera is released before we try to reopen it
         await removeFilter(old);
