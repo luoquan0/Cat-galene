@@ -53,6 +53,7 @@ jobs:
           go mod verify
           go test ./...
           node --check static/galene.js
+          node --check static/i18n.js
           node --check static/camera-test.js
           node --check static/third-party/contextual/contextual.js
           node --test tests/frontend.test.cjs
@@ -66,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.3" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.4" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -114,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.3: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.4: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -123,6 +124,10 @@ jobs:
           - Upgraded to patched Go 1.27.2 and refreshed vulnerable Go dependencies.
 
           Conference:
+          - Added separate camera and microphone toggles; enabled audio-only startup
+            and reopening a disabled device without requiring the other device.
+          - Added a Chinese/English language selector to the home and meeting UI;
+            selected language is saved in the browser.
           - No automatic microphone request solely to enable Safari autoplay.
           - Joining with camera and microphone disabled no longer captures an
             empty stream or raises a device error.
