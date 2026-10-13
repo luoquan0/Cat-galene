@@ -67,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.4" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.5" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -115,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.4: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.5: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -124,10 +124,11 @@ jobs:
           - Upgraded to patched Go 1.27.2 and refreshed vulnerable Go dependencies.
 
           Conference:
-          - Added separate camera and microphone toggles; enabled audio-only startup
-            and reopening a disabled device without requiring the other device.
-          - Added a Chinese/English language selector to the home and meeting UI;
-            selected language is saved in the browser.
+          - Audio and video now request browser permissions independently, with
+            default device fallback and preservation of unchanged tracks.
+          - Restored a compact camera control matching the microphone button.
+          - Extended the English/Simplified Chinese translation across all meeting
+            settings, dropdowns, dynamic labels and auxiliary pages.
           - No automatic microphone request solely to enable Safari autoplay.
           - Joining with camera and microphone disabled no longer captures an
             empty stream or raises a device error.

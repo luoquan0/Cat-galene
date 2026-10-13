@@ -190,3 +190,36 @@ test('camera toolbar uses the same non-button structure as microphone toolbar', 
     assert.match(html, /<div id="camerabutton" class="invisible nav-link nav-button"/);
     assert.doesNotMatch(html, /<button id="camerabutton"/);
 });
+
+test('Simplified Chinese translations cover all settings, option labels and English fallback', () => {
+    const code = fs.readFileSync('static/i18n.js', 'utf8');
+    const handlers = {};
+    const sandbox = {window: {}, document: {addEventListener: (name, fn) => { handlers[name] = fn; }}};
+    vm.runInNewContext(code, sandbox);
+    const translate = sandbox.window.CatGaleneI18n.translate;
+    const required = [
+        ['High-quality audio', '高质量音频'],
+        ['Other Settings', '其他设置'],
+        ['Filter:', '滤镜：'],
+        ['none', '无'],
+        ['Send:', '发送画质：'],
+        ['normal', '标准'],
+        ['Screen share (next share):', '下次屏幕共享：'],
+        ['smooth video', '流畅视频'],
+        ['Simulcast:', '分层编码：'],
+        ['auto', '自动'],
+        ['Receive:', '接收内容：'],
+        ['everything', '全部音视频'],
+        ['Activity detection', '活动检测'],
+        ['Display audio-only users', '显示仅音频用户'],
+        ['Default camera', '默认摄像头'],
+        ['Default microphone', '默认麦克风'],
+        ['Share Screen', '共享屏幕'],
+    ];
+    for(const [english, chinese] of required) {
+        assert.equal(translate(english, 'zh-CN'), chinese);
+        assert.equal(translate(english, 'en'), english);
+    }
+    assert.equal(translate('Camera 2', 'zh-CN'), '摄像头 2');
+    assert.equal(translate('(3 clients, locked)', 'zh-CN'), '（3 人，已锁定）');
+});
