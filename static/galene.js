@@ -1268,6 +1268,29 @@ function doSimulcast() {
 }
 
 /**
+ * Prefer readable screen-share text under congestion.  Browsers may
+ * reduce FPS rather than downscale the shared desktop.  Unsupported
+ * implementations continue with the default WebRTC adaptation.
+ *
+ * @param {Stream} c
+ */
+async function preferScreenShareResolution(c) {
+    if(c.label !== 'screenshare')
+        return;
+    for(const sender of c.pc.getSenders()) {
+        if(!sender.track || sender.track.kind !== 'video')
+            continue;
+        try {
+            const parameters = sender.getParameters();
+            parameters.degradationPreference = 'maintain-resolution';
+            await sender.setParameters(parameters);
+        } catch(e) {
+            console.warn('Could not prioritise screen-share resolution', e);
+        }
+    }
+}
+
+/**
  * Sets up c to send the given stream.  Some extra parameters are stored
  * in c.userdata.
  *
@@ -1395,6 +1418,7 @@ async function setUpStream(c, stream) {
         }
     };
 
+    await preferScreenShareResolution(c);
     c.onstats = gotUpStats;
     c.setStatsInterval(2000);
 }

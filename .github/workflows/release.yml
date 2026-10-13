@@ -67,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.8" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.9" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -115,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.8: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.9: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -140,6 +140,8 @@ jobs:
           - Keeps screen shares at their highest requested quality when
             viewers resize or collapse the video area; other camera streams
             continue to adapt, and explicit low-quality preferences are kept.
+          - Prefers retaining screen-share resolution over frame rate during
+            congestion where the browser supports the WebRTC preference.
 
           Portable assets:
           - Linux amd64 and arm64 server tar.gz packages, including web UI.

@@ -460,3 +460,35 @@ test('receiver never auto-downgrades shared screens when the player is small', (
     sandbox.updateReceiveQuality('one');
     assert.equal(requests.length, 3);
 });
+
+test('screen sharing prioritises resolution without changing webcams or bitrate', async () => {
+    const m = galene.match(/async function preferScreenShareResolution\(c\) \{[\s\S]*?\n\}\n/);
+    assert.ok(m, 'missing sender resolution preference');
+    assert.match(galene, /await preferScreenShareResolution\(c\);/);
+    const updates = [];
+    const video = {
+        track: {kind: 'video'},
+        getParameters: () => ({encodings: [{maxBitrate: 35000000}]}),
+        setParameters: async p => updates.push(p),
+    };
+    const audio = {
+        track: {kind: 'audio'},
+        setParameters: () => {throw Error('must not change audio sender');},
+    };
+    const sandbox = {console};
+    vm.runInNewContext(m[0] + '\nthis.prefer = preferScreenShareResolution;', sandbox);
+    const c = {label: 'camera', pc: {getSenders: () => [video, audio]}};
+    await sandbox.prefer(c);
+    assert.equal(updates.length, 0);
+    c.label = 'screenshare';
+    await sandbox.prefer(c);
+    assert.equal(updates.length, 1);
+    assert.equal(updates[0].degradationPreference, 'maintain-resolution');
+    assert.equal(updates[0].encodings[0].maxBitrate, 35000000);
+    c.pc.getSenders = () => [{
+        track: {kind: 'video'},
+        getParameters: () => ({encodings: [{}]}),
+        setParameters: async () => {throw Error('unsupported');},
+    }];
+    await assert.doesNotReject(sandbox.prefer(c));
+});
