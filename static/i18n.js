@@ -20,6 +20,16 @@
     "Stop screensharing": "停止屏幕共享",
     "Play": "播放",
     "Stop": "停止",
+    "operator": "管理员",
+    "presenter": "发言者",
+    "(op, presenter)": "（管理员、发言者）",
+    "Unknown filter": "未知滤镜",
+    "Delete all from": "删除所有消息",
+    "Time": "时间",
+    "Size": "大小",
+    "Loading...": "加载中…",
+    "Camera settings": "摄像头设置",
+    "Microphone settings": "麦克风设置",
     "Language": "语言",
     "Group:": "会议室：",
     "Join": "加入会议",
@@ -336,6 +346,8 @@
         const select = document.getElementById('language-select');
         if(select) select.value = language;
         if(document.body) applyTo(document.body);
+        const pageTitle = document.head?.querySelector('title');
+        if(pageTitle) applyTo(pageTitle);
         watch();
     }
 

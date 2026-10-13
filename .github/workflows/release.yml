@@ -67,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.5" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.6" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -115,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.5: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.6: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
