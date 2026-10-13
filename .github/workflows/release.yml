@@ -1,0 +1,79 @@
+name: Linux Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  linux-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Build Linux packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            package="Cat-galene_${GITHUB_REF_NAME}_linux_${arch}"
+            root="${RUNNER_TEMP}/${package}"
+            mkdir -p "${root}"
+            CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -trimpath -ldflags="-s -w" -o "${root}/galene" .
+            CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -trimpath -ldflags="-s -w" -o "${root}/galenectl" ./galenectl
+            cp -R static "${root}/static"
+            cp README.md LICENCE galene.md galene-install.md galene-client.md galene-protocol.md galene-api.md "${root}/"
+            tar -czf "dist/${package}.tar.gz" -C "${RUNNER_TEMP}" "${package}"
+          done
+          (cd dist && sha256sum ./*.tar.gz > SHA256SUMS.txt)
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            tag="v1.2.1-cat.1"
+            if gh release view "${tag}" >/dev/null 2>&1; then
+              echo "${tag} already released; no release update on main push."
+              exit 0
+            fi
+          fi
+          cat > "${RUNNER_TEMP}/release-notes.txt" <<'EOF'
+          Cat-galene based on Galene 1.2.1.
+
+          Screen sharing updates:
+          - Smooth video (30 fps target) and sharp text (15 fps target) modes.
+          - Increased screen-sharing bitrate budget independent of camera video.
+          - Retained screen-share audio and existing WebRTC/SFU behavior.
+
+          Assets include Linux amd64 and arm64 executables, galenectl, static web files,
+          documentation, and SHA256 checksums.
+
+          After extracting, create the data and groups directories and run ./galene.
+          EOF
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" dist/*.tar.gz dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "${tag}" dist/*.tar.gz dist/SHA256SUMS.txt \
+              --target "${GITHUB_SHA}" --title "Cat-galene ${tag}" \
+              --notes-file "${RUNNER_TEMP}/release-notes.txt"
+          fi
