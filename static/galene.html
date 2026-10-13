@@ -256,6 +256,61 @@
               <option value="motion" selected>smooth video</option>
               <option value="detail">sharp text</option>
             </select>
+            <label for="screenresselect" class="sidenav-label">Capture resolution:</label>
+            <select id="screenresselect" class="select select-inline">
+              <option value="native" selected>Original (no scaling)</option>
+              <option value="1k">1K (1024 × 576)</option>
+              <option value="720p">720p (1280 × 720)</option>
+              <option value="1080p">1080p (1920 × 1080)</option>
+              <option value="2k">2K / 1440p (2560 × 1440)</option>
+              <option value="4k">4K (3840 × 2160)</option>
+              <option value="custom">Custom resolution</option>
+            </select>
+            <div id="screencustomsize" class="invisible screenshare-custom-grid">
+              <div>
+                <label for="screenwidth">Width (px):</label>
+                <input id="screenwidth" type="number" min="320" max="7680"
+                       step="2" value="1920"/>
+              </div>
+              <div>
+                <label for="screenheight">Height (px):</label>
+                <input id="screenheight" type="number" min="180" max="4320"
+                       step="2" value="1080"/>
+              </div>
+            </div>
+            <label for="screenfpsselect" class="sidenav-label">Frame rate:</label>
+            <select id="screenfpsselect" class="select select-inline">
+              <option value="auto" selected>Automatic (from mode)</option>
+              <option value="15">15 FPS</option>
+              <option value="24">24 FPS</option>
+              <option value="30">30 FPS</option>
+              <option value="60">60 FPS</option>
+              <option value="90">90 FPS</option>
+              <option value="120">120 FPS</option>
+              <option value="custom">Custom FPS</option>
+            </select>
+            <div id="screencustomfps" class="invisible screenshare-custom-input">
+              <label for="screenfps">Custom FPS:</label>
+              <input id="screenfps" type="number" min="1" max="120"
+                     step="1" value="30"/>
+            </div>
+            <label for="screenbitrateselect" class="sidenav-label">Share bitrate:</label>
+            <select id="screenbitrateselect" class="select select-inline">
+              <option value="auto" selected>Automatic (recommended)</option>
+              <option value="4">4 Mbps</option>
+              <option value="8">8 Mbps</option>
+              <option value="12">12 Mbps</option>
+              <option value="20">20 Mbps</option>
+              <option value="35">35 Mbps</option>
+              <option value="50">50 Mbps</option>
+              <option value="custom">Custom bitrate</option>
+            </select>
+            <div id="screencustombitrate" class="invisible screenshare-custom-input">
+              <label for="screenbitrate">Custom bitrate (Mbps):</label>
+              <input id="screenbitrate" type="number" min="0.5" max="100"
+                     step="0.5" value="20"/>
+            </div>
+            <p class="screenshare-hint">Resolution and FPS apply to the next share. Bitrate changes apply immediately. Actual quality depends on the browser and source.</p>
           </form>
 
           <form id="simulcastform">

@@ -67,7 +67,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.6" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.7" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -115,7 +115,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.6: Linux server and Windows meeting client.
+          Cat-galene v1.2.1-cat.7: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -133,7 +133,10 @@ jobs:
           - Joining with camera and microphone disabled no longer captures an
             empty stream or raises a device error.
           - Camera-test works with audio-only, video-only, or no device selected.
-          - Retains screen-share video/text modes and independent bitrate cap.
+          - Added persistent screen-share presets for 720p/1080p/1K/2K/4K,
+            15/24/30/60/90/120 FPS, custom size/FPS, and an independent
+            configurable high-bitrate cap up to 100 Mbps.
+          - Restores settings across visits using browser local storage.
 
           Portable assets:
           - Linux amd64 and arm64 server tar.gz packages, including web UI.

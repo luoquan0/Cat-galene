@@ -1486,3 +1486,39 @@ header .collapse:hover {
     #header .language-label { display: none; }
     #header #language-select { max-width: 78px; }
 }
+
+/* Screen-sharing options follow the existing sidebar form styling. */
+#screenshareform .screenshare-custom-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+#screenshareform .screenshare-custom-input {
+    margin-top: 8px;
+}
+#screenshareform .screenshare-custom-grid.invisible,
+#screenshareform .screenshare-custom-input.invisible {
+    display: none;
+}
+#screenshareform .screenshare-custom-grid label,
+#screenshareform .screenshare-custom-input label {
+    display: block;
+    font-size: 0.82em;
+}
+#screenshareform input[type="number"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    color: #333;
+    background-color: #fff;
+}
+#screenshareform .screenshare-hint {
+    margin: 10px 0 0;
+    font-size: 0.78em;
+    line-height: 1.4;
+    color: #5c6470;
+}

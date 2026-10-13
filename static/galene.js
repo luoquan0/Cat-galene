@@ -156,6 +156,37 @@ function reflectSettings() {
         store = true;
     }
 
+    const shareSelects = [
+        ['screenresselect', 'screenShareResolution'],
+        ['screenfpsselect', 'screenShareFPS'],
+        ['screenbitrateselect', 'screenShareBitrate'],
+    ];
+    for(const [id, key] of shareSelects) {
+        const select = getSelectElement(id);
+        if(!settings.hasOwnProperty(key) ||
+           !selectOptionAvailable(select, settings[key])) {
+            settings[key] = select.value;
+            store = true;
+        }
+        select.value = settings[key];
+    }
+    const shareNumbers = [
+        ['screenwidth', 'screenShareWidth'],
+        ['screenheight', 'screenShareHeight'],
+        ['screenfps', 'screenShareCustomFPS'],
+        ['screenbitrate', 'screenShareCustomBitrate'],
+    ];
+    for(const [id, key] of shareNumbers) {
+        const input = getInputElement(id);
+        if(typeof settings[key] !== 'number' || !Number.isFinite(settings[key]) ||
+           settings[key] < Number(input.min) || settings[key] > Number(input.max)) {
+            settings[key] = Number(input.value);
+            store = true;
+        }
+        input.value = String(settings[key]);
+    }
+    reflectScreenShareCustomFields();
+
     if(settings.hasOwnProperty('simulcast')) {
         getSelectElement('simulcastselect').value = settings.simulcast
     } else {
@@ -703,7 +734,67 @@ getSelectElement('filterselect').onchange = async function(e) {
  * @param {string} [label]
  * @returns {number}
  */
+/**
+ * Build capture constraints and the independent screen-share video bitrate.
+ * These are preferred targets, not guarantees about the browser's output.
+ *
+ * @param {settings} settings
+ */
+function getScreenShareProfile(settings) {
+    const sizes = {
+        '1k': [1024, 576],
+        '720p': [1280, 720],
+        '1080p': [1920, 1080],
+        '2k': [2560, 1440],
+        '4k': [3840, 2160],
+    };
+    function bounded(value, fallback, min, max) {
+        const n = Number(value);
+        return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+    }
+
+    const selected = settings.screenShareResolution || 'native';
+    let size = sizes[selected] || null;
+    if(selected === 'custom') {
+        const width = bounded(settings.screenShareWidth, 1920, 320, 7680);
+        const height = bounded(settings.screenShareHeight, 1080, 180, 4320);
+        size = [Math.round(width / 2) * 2, Math.round(height / 2) * 2];
+    }
+
+    const mode = settings.screenShareMode === 'detail' ? 'detail' : 'motion';
+    let fps = mode === 'detail' ? 15 : 30;
+    if(settings.screenShareFPS === 'custom')
+        fps = Math.round(bounded(settings.screenShareCustomFPS, fps, 1, 120));
+    else if(['15', '24', '30', '60', '90', '120'].includes(settings.screenShareFPS))
+        fps = Number(settings.screenShareFPS);
+
+    const video = {frameRate: {ideal: fps, max: fps}};
+    if(size) {
+        video.width = {ideal: size[0], max: size[0]};
+        video.height = {ideal: size[1], max: size[1]};
+    }
+
+    // Native capture has unknown dimensions before the user picks a screen.
+    // Use a 1440p estimate so the default is not capped at 2.1 Mbps.
+    const estimatedPixels = size ? size[0] * size[1] : 2560 * 1440;
+    const automaticMbps = Math.max(4, Math.min(100,
+        Math.ceil(12 * (estimatedPixels / (1920 * 1080)) * (fps / 30))));
+    let bitrateMbps = automaticMbps;
+    if(settings.screenShareBitrate === 'custom')
+        bitrateMbps = bounded(settings.screenShareCustomBitrate, automaticMbps, 0.5, 100);
+    else if(['4', '8', '12', '20', '35', '50'].includes(settings.screenShareBitrate))
+        bitrateMbps = Number(settings.screenShareBitrate);
+
+    return {
+        video: video,
+        bitrate: Math.round(bitrateMbps * 1000000),
+        contentHint: mode === 'detail' ? 'text' : 'motion',
+    };
+}
+
 function getMaxVideoThroughput(label) {
+    if(label === 'screenshare')
+        return getScreenShareProfile(getSettings()).bitrate;
     let v = getSettings().send;
     let bps;
     switch(v) {
@@ -722,7 +813,7 @@ function getMaxVideoThroughput(label) {
         console.error('Unknown video quality', v);
         bps = 700000;
     }
-    return label === 'screenshare' ? bps * 3 : bps;
+    return bps;
 }
 
 getSelectElement('sendselect').onchange = async function(e) {
@@ -737,6 +828,48 @@ getSelectElement('screenshareselect').onchange = function(e) {
         throw new Error('Unexpected type for this');
     updateSettings({screenShareMode: this.value});
 };
+
+/** Show custom fields without changing the existing sidebar layout. */
+function reflectScreenShareCustomFields() {
+    setVisibility('screencustomsize',
+        getSelectElement('screenresselect').value === 'custom');
+    setVisibility('screencustomfps',
+        getSelectElement('screenfpsselect').value === 'custom');
+    setVisibility('screencustombitrate',
+        getSelectElement('screenbitrateselect').value === 'custom');
+}
+
+for(const [id, key] of [
+    ['screenresselect', 'screenShareResolution'],
+    ['screenfpsselect', 'screenShareFPS'],
+    ['screenbitrateselect', 'screenShareBitrate'],
+]) {
+    getSelectElement(id).onchange = function(e) {
+        e.preventDefault();
+        updateSetting(key, this.value);
+        reflectScreenShareCustomFields();
+        if(key === 'screenShareBitrate' && serverConnection?.up)
+            reconsiderSendParameters().catch(displayError);
+    };
+}
+
+for(const [id, key] of [
+    ['screenwidth', 'screenShareWidth'],
+    ['screenheight', 'screenShareHeight'],
+    ['screenfps', 'screenShareCustomFPS'],
+    ['screenbitrate', 'screenShareCustomBitrate'],
+]) {
+    getInputElement(id).onchange = function(e) {
+        e.preventDefault();
+        if(!this.checkValidity() || !this.value) {
+            this.reportValidity();
+            return;
+        }
+        updateSetting(key, Number(this.value));
+        if(key === 'screenShareCustomBitrate' && serverConnection?.up)
+            reconsiderSendParameters().catch(displayError);
+    };
+}
 
 getSelectElement('simulcastselect').onchange = async function(e) {
     if(!(this instanceof HTMLSelectElement))
@@ -1465,13 +1598,13 @@ async function addShareMedia() {
 
     /** @type {MediaStream} */
     let stream = null;
-    let mode = getSettings().screenShareMode === 'detail' ? 'detail' : 'motion';
-    let frameRate = mode === 'detail' ? 15 : 30;
+    const profile = getScreenShareProfile(getSettings());
     try {
-        if(!('getDisplayMedia' in navigator.mediaDevices))
+        if(!navigator.mediaDevices ||
+           !('getDisplayMedia' in navigator.mediaDevices))
             throw new Error('Your browser does not support screen sharing');
         stream = await navigator.mediaDevices.getDisplayMedia({
-            video: {frameRate: {ideal: frameRate, max: frameRate}},
+            video: profile.video,
             audio: true,
         });
     } catch(e) {
@@ -1482,7 +1615,7 @@ async function addShareMedia() {
 
     stream.getVideoTracks().forEach(t => {
         if('contentHint' in t)
-            t.contentHint = mode === 'detail' ? 'text' : 'motion';
+            t.contentHint = profile.contentHint;
     });
 
     let c = newUpStream();

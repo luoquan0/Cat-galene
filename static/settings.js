@@ -28,6 +28,13 @@
  * @property {string} [simulcast]
  * @property {string} [send]
  * @property {string} [screenShareMode]
+ * @property {string} [screenShareResolution]
+ * @property {number} [screenShareWidth]
+ * @property {number} [screenShareHeight]
+ * @property {string} [screenShareFPS]
+ * @property {number} [screenShareCustomFPS]
+ * @property {string} [screenShareBitrate]
+ * @property {number} [screenShareCustomBitrate]
  * @property {string} [request]
  * @property {boolean} [activityDetection]
  * @property {boolean} [displayAll]
@@ -49,19 +56,27 @@
 let fallbackSettings = null;
 
 /**
- * Overwrite settings with the parameter.  This uses session storage if
- * available, and the global variable fallbackSettings otherwise.
+ * Persist preferences between visits in local storage, falling back to
+ * session storage or memory when the browser disallows persistence.
  *
  * @param {settings} settings
  */
 function storeSettings(settings) {
+    let saved = false;
+    const json = JSON.stringify(settings);
     try {
-        window.sessionStorage.setItem('settings', JSON.stringify(settings));
-        fallbackSettings = null;
+        window.localStorage.setItem('cat-galene-settings', json);
+        saved = true;
     } catch(e) {
-        console.warn("Couldn't store settings:", e);
-        fallbackSettings = settings;
+        // Local storage may be disabled by the browser or its privacy mode.
     }
+    try {
+        window.sessionStorage.setItem('settings', json);
+        saved = true;
+    } catch(e) {
+        // Still usable with local storage or the in-memory fallback.
+    }
+    fallbackSettings = saved ? null : settings;
 }
 
 /**
@@ -71,16 +86,23 @@ function storeSettings(settings) {
  * @returns {settings}
  */
 function getSettings() {
-    /** @type {settings} */
-    let settings;
-    try {
-        let json = window.sessionStorage.getItem('settings');
-        settings = JSON.parse(json);
-    } catch(e) {
-        console.warn("Couldn't retrieve settings:", e);
-        settings = fallbackSettings;
+    // Prefer saved preferences from previous visits. Existing session-only
+    // settings are read as a migration fallback.
+    for(const storage of ['localStorage', 'sessionStorage']) {
+        try {
+            const key = storage === 'localStorage' ?
+                'cat-galene-settings' : 'settings';
+            const json = window[storage].getItem(key);
+            if(!json)
+                continue;
+            const result = JSON.parse(json);
+            if(result && typeof result === 'object' && !Array.isArray(result))
+                return result;
+        } catch(e) {
+            // Invalid or blocked storage falls through to the next choice.
+        }
     }
-    return settings || {};
+    return fallbackSettings || {};
 }
 
 /**

@@ -254,3 +254,153 @@ test('join choices preserve fully independent device intents', () => {
     assert.equal(settings.video, 'default');
     assert.equal(settings.localMute, false);
 });
+
+const settingsSource = fs.readFileSync('static/settings.js', 'utf8');
+
+test('screen sharing profiles support native, presets, custom size, FPS and bitrate', () => {
+    const source = galene.match(/function getScreenShareProfile\(settings\) \{[\s\S]*?\n\}\n/);
+    assert.ok(source, 'screen share profile helper not found');
+    const sandbox = {};
+    vm.runInNewContext(source[0] + '\nthis.profile = getScreenShareProfile;', sandbox);
+    const defaults = sandbox.profile({screenShareMode: 'motion'});
+    assert.equal(defaults.video.frameRate.ideal, 30);
+    assert.equal(defaults.video.width, undefined);
+    assert.ok(defaults.bitrate > 15000000);
+
+    const sharp = sandbox.profile({
+        screenShareMode: 'detail', screenShareResolution: '720p',
+        screenShareFPS: '15', screenShareBitrate: '8',
+    });
+    assert.equal(sharp.video.width.ideal, 1280);
+    assert.equal(sharp.video.height.max, 720);
+    assert.equal(sharp.video.frameRate.max, 15);
+    assert.equal(sharp.bitrate, 8000000);
+    assert.equal(sharp.contentHint, 'text');
+
+    const custom = sandbox.profile({
+        screenShareResolution: 'custom', screenShareWidth: 2001,
+        screenShareHeight: 1125, screenShareFPS: 'custom',
+        screenShareCustomFPS: 75, screenShareBitrate: 'custom',
+        screenShareCustomBitrate: 42.5,
+    });
+    assert.equal(custom.video.width.max, 2002);
+    assert.equal(custom.video.height.max, 1126);
+    assert.equal(custom.video.frameRate.ideal, 75);
+    assert.equal(custom.bitrate, 42500000);
+
+    const twoK = sandbox.profile({screenShareResolution: '2k', screenShareFPS: '60'});
+    assert.equal(twoK.video.width.ideal, 2560);
+    assert.equal(twoK.video.height.ideal, 1440);
+    assert.equal(twoK.video.frameRate.ideal, 60);
+    assert.ok(twoK.bitrate > 30000000);
+    const invalid = sandbox.profile({
+        screenShareResolution: 'custom', screenShareWidth: 99999,
+        screenShareHeight: -20, screenShareFPS: 'custom', screenShareCustomFPS: 0,
+        screenShareBitrate: 'custom', screenShareCustomBitrate: 9000,
+    });
+    assert.equal(invalid.video.width.max, 1920);
+    assert.equal(invalid.video.height.max, 1080);
+    assert.equal(invalid.video.frameRate.max, 30);
+    assert.ok(invalid.bitrate <= 100000000);
+});
+
+test('screen sharing bitrate is separate from webcam send bitrate', () => {
+    const profile = galene.match(/function getScreenShareProfile\(settings\) \{[\s\S]*?\n\}\n/)[0];
+    const throughput = galene.match(/function getMaxVideoThroughput\(label\) \{[\s\S]*?\n\}\n/)[0];
+    const sandbox = {
+        getSettings: () => ({
+            send: 'normal', screenShareResolution: '1080p',
+            screenShareFPS: '30', screenShareBitrate: 'custom',
+            screenShareCustomBitrate: 28,
+        }),
+        console,
+    };
+    vm.runInNewContext(profile + throughput +
+        '\nthis.maxVideo = getMaxVideoThroughput;', sandbox);
+    assert.equal(sandbox.maxVideo('camera'), 700000);
+    assert.equal(sandbox.maxVideo('screenshare'), 28000000);
+});
+
+test('capture passes chosen screen resolution and 60 FPS into getDisplayMedia', async () => {
+    const profile = galene.match(/function getScreenShareProfile\(settings\) \{[\s\S]*?\n\}\n/)[0];
+    const source = galene.match(/let safariScreenshareDone = false;[\s\S]*?\n\}\n\n\/\*\*\n \* @param \{File\} file/);
+    assert.ok(source, 'screen capture implementation not found');
+    let constraints, streamSent, status = false;
+    const track = {kind: 'video', contentHint: ''};
+    const stream = {getVideoTracks: () => [track], getTracks: () => [track]};
+    const sandbox = {
+        navigator: {mediaDevices: {getDisplayMedia: async request => {
+            constraints = request;
+            return stream;
+        }}},
+        getSettings: () => ({
+            screenShareResolution: '2k', screenShareMode: 'motion',
+            screenShareFPS: '60', screenShareBitrate: '35',
+        }),
+        isSafari: () => false,
+        newUpStream: () => ({label: ''}),
+        setUpStream: async (c, s) => {streamSent = s;},
+        setMedia: async () => {},
+        setButtonsVisibility: () => {status = true;},
+        displayError: e => {throw e;},
+        console,
+    };
+    vm.runInNewContext(profile +
+        source[0].replace(/\n\n\/\*\*\n \* @param \{File\} file$/, '') +
+        '\nthis.share = addShareMedia;', sandbox);
+    await sandbox.share();
+    assert.equal(constraints.audio, true);
+    assert.equal(constraints.video.width.ideal, 2560);
+    assert.equal(constraints.video.height.ideal, 1440);
+    assert.equal(constraints.video.frameRate.max, 60);
+    assert.equal(track.contentHint, 'motion');
+    assert.equal(streamSent, stream);
+    assert.equal(status, true);
+});
+
+test('preferences persist between browser sessions and migrate older session settings', () => {
+    const local = new Map(), session = new Map();
+    const createContext = (legacy) => {
+        const sandbox = {
+            window: {
+                localStorage: {
+                    getItem: key => local.get(key) || null,
+                    setItem: (key, value) => local.set(key, value),
+                },
+                sessionStorage: {
+                    getItem: key => (legacy || session).get(key) || null,
+                    setItem: (key, value) => session.set(key, value),
+                },
+            },
+        };
+        vm.runInNewContext(settingsSource +
+            '\nthis.getSaved = getSettings; this.changeSaved = updateSettings;', sandbox);
+        return sandbox;
+    };
+    const first = createContext();
+    first.changeSaved({
+        screenShareResolution: '2k', screenShareFPS: '60',
+        screenShareBitrate: 'custom', screenShareCustomBitrate: 35,
+    });
+    const second = createContext(new Map());
+    assert.equal(second.getSaved().screenShareResolution, '2k');
+    assert.equal(second.getSaved().screenShareFPS, '60');
+    assert.equal(second.getSaved().screenShareCustomBitrate, 35);
+
+    local.clear();
+    const older = new Map([['settings', JSON.stringify({screenShareMode: 'detail'})]]);
+    const migrated = createContext(older);
+    assert.equal(migrated.getSaved().screenShareMode, 'detail');
+    migrated.changeSaved({screenShareFPS: '24'});
+    assert.equal(JSON.parse(local.get('cat-galene-settings')).screenShareFPS, '24');
+});
+
+test('sharing preference controls exist with translated labels', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    for(const id of ['screenresselect', 'screenwidth', 'screenheight',
+        'screenfpsselect', 'screenfps', 'screenbitrateselect', 'screenbitrate'])
+        assert.ok(html.includes('id="' + id + '"'), 'missing ' + id);
+    const i18n = fs.readFileSync('static/i18n.js', 'utf8');
+    assert.match(i18n, /"Capture resolution:": "采集分辨率："/);
+    assert.match(i18n, /"Share bitrate:": "共享码率："/);
+});
