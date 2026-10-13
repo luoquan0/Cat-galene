@@ -1,6 +1,6 @@
 //go:build windows
 
-// The Windows client opens the remote Galene site in a browser application
+// The Windows client opens the remote Cat-Meet site in a browser application
 // window. It is not an embedded server or an alternative WebRTC engine.
 package main
 
@@ -122,7 +122,7 @@ func readInput() string {
 
 func showError(hwnd uintptr, text string) {
 	messageBox.Call(hwnd, uintptr(unsafe.Pointer(utf16(text))),
-		uintptr(unsafe.Pointer(utf16("Cat-galene 客户端"))), 0x10)
+		uintptr(unsafe.Pointer(utf16("Cat-Meet 客户端"))), 0x10)
 }
 
 func windowProcedure(hwnd, msg, wparam, lparam uintptr) uintptr {
@@ -161,7 +161,7 @@ func runWindow() error {
 	if hInstance == 0 {
 		return fmt.Errorf("无法初始化 Windows 客户端")
 	}
-	className := utf16("CatGaleneClientWindow")
+	className := utf16("CatMeetClientWindow")
 	cursor, _, _ := loadCursor.Call(0, 32512) // IDC_ARROW
 	class := wndClassEx{
 		size:       uint32(unsafe.Sizeof(wndClassEx{})),
@@ -180,7 +180,7 @@ func runWindow() error {
 	sh, _, _ := getSystemMetrics.Call(1) // SM_CYSCREEN
 	x, y := (int(sw)-width)/2, (int(sh)-height)/2
 	window, _, _ := createWindow.Call(0, uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(utf16("Cat-galene · Windows 会议客户端"))),
+		uintptr(unsafe.Pointer(utf16("Cat-Meet · Windows 会议客户端"))),
 		wsOverlappedWindow|wsVisible, uintptr(x), uintptr(y),
 		uintptr(width), uintptr(height), 0, 0, hInstance, 0)
 	if window == 0 {
@@ -205,7 +205,7 @@ func runWindow() error {
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "-version" {
-		fmt.Println("Cat-galene Windows Client v1.2.1-cat.3")
+		fmt.Println("Cat-Meet Windows Client v1.2.1-cat.12")
 		return
 	}
 	if err := runWindow(); err != nil {

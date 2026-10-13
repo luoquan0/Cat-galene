@@ -12,7 +12,7 @@ if not exist "data\config.json" (
         exit /b 1
     )
 )
-echo Starting Cat-galene at https://localhost:8443/
+echo Starting Cat-Meet at https://localhost:8443/
 galene.exe -http :8443
-echo Cat-galene has exited.
+echo Cat-Meet has exited.
 pause

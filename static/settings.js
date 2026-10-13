@@ -66,7 +66,7 @@ function storeSettings(settings) {
     let saved = false;
     const json = JSON.stringify(settings);
     try {
-        window.localStorage.setItem('cat-galene-settings', json);
+        window.localStorage.setItem('cat-meet-settings', json);
         saved = true;
     } catch(e) {
         // Local storage may be disabled by the browser or its privacy mode.
@@ -89,10 +89,12 @@ function storeSettings(settings) {
 function getSettings() {
     // Prefer saved preferences from previous visits. Existing session-only
     // settings are read as a migration fallback.
-    for(const storage of ['localStorage', 'sessionStorage']) {
+    for(const [storage, key] of [
+        ['localStorage', 'cat-meet-settings'],
+        ['localStorage', 'cat-galene-settings'],
+        ['sessionStorage', 'settings'],
+    ]) {
         try {
-            const key = storage === 'localStorage' ?
-                'cat-galene-settings' : 'settings';
             const json = window[storage].getItem(key);
             if(!json)
                 continue;

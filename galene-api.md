@@ -1,4 +1,8 @@
-# Galene's administrative API
+# Cat-Meet administrative API
+
+> Cat-Meet is based on Galène. Older documentation commands such as `galene`
+> and `galenectl`, and protocol identifiers, are intentionally supported for
+> compatibility. Release packages also provide `cat-meet` and `cat-meetctl`.
 
 Galene provides an HTTP-based API that can be used to create groups and
 users.  For example, in order to create a group, a client may do

@@ -1,11 +1,11 @@
-# Cat-galene Windows 会议客户端
+# Cat-Meet Windows 会议客户端
 
-这份 Windows 程序是 **会议客户端**，不包含服务器，也不会在本机开设 Galene 服务。
+这份 Windows 程序是 **会议客户端**，不包含服务器，也不会在本机开设 Cat-Meet 服务。
 
 ## 使用方法
 
 1. 将 ZIP 完整解压至任意目录。
-2. 双击 Cat-galene-Client.exe。
+2. 双击 Cat-Meet-Client.exe。
 3. 粘贴 Linux 服务器的会议链接，例如 https://meet.example.com/group/team/。
 4. 点击“进入会议”。客户端会通过已安装的 Edge 或 Chrome 打开一个独立会议窗口。
 5. 在会议窗口中加入会议；摄像头、麦克风、屏幕共享都沿用浏览器的 WebRTC 功能。

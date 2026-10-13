@@ -1,4 +1,8 @@
-# Writing a new frontend
+# Writing a Cat-Meet frontend
+
+> Cat-Meet is based on Galène. Older documentation commands such as `galene`
+> and `galenectl`, and protocol identifiers, are intentionally supported for
+> compatibility. Release packages also provide `cat-meet` and `cat-meetctl`.
 
 The frontend is written in JavaScript and is split into two files:
 

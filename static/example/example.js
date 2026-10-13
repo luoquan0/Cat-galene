@@ -1,4 +1,4 @@
-/* Galene client example. */
+/* Cat-Meet client example (Galene protocol). */
 
 /**
  * The main function.

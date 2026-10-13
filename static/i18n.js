@@ -1,4 +1,4 @@
-// Bilingual user interface for Cat-galene. Strings are text, never HTML.
+// Bilingual user interface for Cat-Meet. Strings are text, never HTML.
 'use strict';
 (() => {
     const chinese = {
@@ -86,6 +86,10 @@
     "Custom bitrate (Mbps):": "自定义码率（Mbps）：",
     "Resolution and FPS apply to the next share. Bitrate changes apply immediately. Actual quality depends on the browser and source.": "分辨率和帧率在下次开始共享时生效；码率更改立即生效。实际画质受浏览器和共享内容限制。",
     "Actual outgoing quality:": "实际发送画质：",
+    "Zoom in": "放大画面",
+    "Zoom out": "缩小画面",
+    "Reset zoom": "恢复原始比例",
+    "Screen share zoom": "屏幕共享缩放",
     "Not sharing": "未开始屏幕共享",
     "Waiting for encoder statistics": "等待视频编码统计",
     "CPU limit": "CPU 性能限制",
@@ -151,7 +155,7 @@
     "Page not found!": "页面未找到！",
     "We can't find the page you're looking for.": "找不到你访问的页面。",
     "Back to home": "返回首页",
-    "Galène statistics": "Galène 统计",
+    "Cat-Meet statistics": "Cat-Meet 统计",
     "Old password:": "原密码：",
     "New password:": "新密码：",
     "New password (repeat):": "确认新密码：",
@@ -358,7 +362,7 @@
     }
     function setLanguage(locale) {
         language = locale === 'zh-CN' ? 'zh-CN' : 'en';
-        try {localStorage.setItem('cat-galene-language', language);} catch(e) {}
+        try {localStorage.setItem('cat-meet-language', language);} catch(e) {}
         if(observer) observer.disconnect();
         document.documentElement.lang = language;
         const select = document.getElementById('language-select');
@@ -386,14 +390,15 @@
         const picker = document.getElementById('language-select');
         if(picker) picker.addEventListener('change', () => setLanguage(picker.value));
         let selected;
-        try {selected = localStorage.getItem('cat-galene-language');} catch(e) {}
+        try {selected = localStorage.getItem('cat-meet-language') ||
+            localStorage.getItem('cat-galene-language');} catch(e) {}
         if(!selected)
             selected = navigator.language?.toLowerCase().startsWith('zh') ?
                 'zh-CN' : 'en';
         setLanguage(selected);
     });
 
-    window.CatGaleneI18n = {
+    window.CatMeetI18n = {
         setLanguage,
         translate: (value, locale) => translateString(value,
             (locale || language) === 'zh-CN'),

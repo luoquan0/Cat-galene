@@ -986,7 +986,7 @@ function formatScreenShareStats(stats) {
         other: 'Encoding limit',
     }[video.qualityLimitationReason];
     if(limitation) {
-        const translate = window.CatGaleneI18n?.translate;
+        const translate = window.CatMeetI18n?.translate;
         info.push(translate ? translate(limitation) : limitation);
     }
     return info.length ? info.join(' · ') : 'Waiting for encoder statistics';
@@ -1960,6 +1960,9 @@ async function setMedia(c, mirror, video) {
         addCustomControls(media, div, c, !!video);
     }
 
+    if(c.label === 'screenshare')
+        enableScreenShareZoom(media, div);
+
     if(mirror)
         media.classList.add('mirror');
     else
@@ -2630,7 +2633,7 @@ function setTitle(title) {
     if(title)
         set(title);
     else
-        set('Galène');
+        set('Cat-Meet');
 }
 
 /**
@@ -2995,7 +2998,7 @@ function gotUserMessage(id, dest, username, time, privileged, kind, error, messa
         if('share' in navigator) {
             try {
                 navigator.share({
-                    title: `Invitation to Galene group ${message.group}`,
+                    title: `Invitation to Cat-Meet room ${message.group}`,
                     text: f[0],
                     url: f[1],
                 });

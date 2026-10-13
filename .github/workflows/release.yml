@@ -31,8 +31,8 @@ jobs:
       - name: Verify Windows client executable
         shell: pwsh
         run: |
-          go build -trimpath -o Cat-galene-Client.exe ./client/windows
-          ./Cat-galene-Client.exe -version
+          go build -trimpath -o Cat-Meet-Client.exe ./client/windows
+          ./Cat-Meet-Client.exe -version
 
   release:
     name: Test and package Linux server + Windows client
@@ -53,6 +53,7 @@ jobs:
           go mod verify
           go test ./...
           node --check static/galene.js
+          node --check static/share-zoom.js
           node --check static/i18n.js
           node --check static/camera-test.js
           node --check static/third-party/contextual/contextual.js
@@ -67,7 +68,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.1-cat.11" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.1-cat.12" >> "${GITHUB_ENV}"
           fi
 
       - name: Build portable packages
@@ -78,24 +79,26 @@ jobs:
           for target in linux:amd64 linux:arm64 windows:amd64 windows:arm64; do
             IFS=: read -r os arch <<< "${target}"
             if [[ "${os}" == "windows" ]]; then
-              package="Cat-galene_${RELEASE_TAG}_windows_client_${arch}"
+              package="Cat-Meet_${RELEASE_TAG}_windows_client_${arch}"
             else
-              package="Cat-galene_${RELEASE_TAG}_linux_server_${arch}"
+              package="Cat-Meet_${RELEASE_TAG}_linux_server_${arch}"
             fi
             root="${RUNNER_TEMP}/${package}"
             mkdir -p "${root}"
             if [[ "${os}" == "windows" ]]; then
               CGO_ENABLED=0 GOOS=windows GOARCH="${arch}" \
                 go build -trimpath -ldflags="-s -w -H=windowsgui" \
-                -o "${root}/Cat-galene-Client.exe" ./client/windows
+                -o "${root}/Cat-Meet-Client.exe" ./client/windows
               cp client/windows/README-CLIENT-WINDOWS.txt "${root}/"
               (cd "${RUNNER_TEMP}" && zip -qr \
                 "${GITHUB_WORKSPACE}/dist/${package}.zip" "${package}")
             else
               CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
-                go build -trimpath -ldflags="-s -w" -o "${root}/galene" .
+                go build -trimpath -ldflags="-s -w" -o "${root}/cat-meet" .
+              ln -s cat-meet "${root}/galene"
               CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
-                go build -trimpath -ldflags="-s -w" -o "${root}/galenectl" ./galenectl
+                go build -trimpath -ldflags="-s -w" -o "${root}/cat-meetctl" ./galenectl
+              ln -s cat-meetctl "${root}/galenectl"
               cp -R static "${root}/static"
               cp README.md LICENCE galene.md galene-install.md \
                 galene-client.md galene-protocol.md galene-api.md "${root}/"
@@ -115,7 +118,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-galene v1.2.1-cat.11: Linux server and Windows meeting client.
+          Cat-Meet v1.2.1-cat.12: Linux server and Windows meeting client.
 
           Security:
           - Escaped participant names in context menus and recording-page HTML.
@@ -151,6 +154,15 @@ jobs:
           - Displays actual outbound encoding resolution, FPS, Mbps and
             limitation reason when reported by the browser.
 
+          Cat-Meet rebrand and screen zoom:
+          - Renamed meeting UI, page titles, Windows client EXE, and portable
+            package names. Original Galene protocol/imports and legacy CLI
+            symlink names remain compatible with existing deployments.
+          - Added 50-400% screen-share viewing zoom in 25% increments, drag
+            to pan, Ctrl+wheel zoom, and one-click reset per screen view.
+          - Existing stored video, screen-share and language preferences migrate
+            automatically to the Cat-Meet browser storage keys.
+
           Portable assets:
           - Linux amd64 and arm64 server tar.gz packages, including web UI.
           - Windows amd64 and arm64 *client* ZIP archives; the Windows client
@@ -165,5 +177,5 @@ jobs:
           EOF
           gh release create "${RELEASE_TAG}" dist/*.tar.gz dist/*.zip \
             dist/SHA256SUMS.txt --target "${GITHUB_SHA}" \
-            --title "Cat-galene ${RELEASE_TAG}" \
+            --title "Cat-Meet ${RELEASE_TAG}" \
             --notes-file "${RUNNER_TEMP}/notes.txt"

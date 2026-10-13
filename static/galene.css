@@ -1116,7 +1116,7 @@ legend {
     border-right: 1px solid #dcdcdc;
 }
 
-#left-sidebar .galene-header {
+#left-sidebar .cat-meet-header {
     display: inline-block;
 }
 
@@ -1134,7 +1134,7 @@ header .collapse:hover {
     color: #c2a4e0;
 }
 
-.galene-header {
+.cat-meet-header {
     font-size: 1.3rem;
     font-weight: 900;
     color: #dbd9d9;
@@ -1521,4 +1521,50 @@ header .collapse:hover {
     font-size: 0.78em;
     line-height: 1.4;
     color: #5c6470;
+}
+
+/* Per-view screen-sharing zoom, independent from WebRTC transmission. */
+.peer-screen-share { overflow: hidden; }
+.peer-screen-share .media { will-change: transform; }
+.share-zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 6px;
+    background: rgba(16, 18, 27, .82);
+    color: #fff;
+    z-index: 8;
+    font-size: .85rem;
+    line-height: 1;
+}
+.share-zoom-controls button {
+    display: grid;
+    place-items: center;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0 5px;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: inherit;
+    cursor: pointer;
+}
+.share-zoom-controls button:hover:not(:disabled),
+.share-zoom-controls button:focus-visible {
+    background: rgba(255, 255, 255, .22);
+}
+.share-zoom-controls button:disabled { opacity: .35; cursor: default; }
+.share-zoom-percent {
+    display: inline-block;
+    min-width: 3.5em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+    .share-zoom-controls { top: 4px; right: 4px; }
+    .share-zoom-controls button { min-width: 28px; min-height: 28px; }
 }

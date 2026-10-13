@@ -202,7 +202,7 @@ test('Simplified Chinese translations cover all settings, option labels and Engl
     const handlers = {};
     const sandbox = {window: {}, document: {addEventListener: (name, fn) => { handlers[name] = fn; }}};
     vm.runInNewContext(code, sandbox);
-    const translate = sandbox.window.CatGaleneI18n.translate;
+    const translate = sandbox.window.CatMeetI18n.translate;
     const required = [
         ['High-quality audio', '高质量音频'],
         ['Other Settings', '其他设置'],
@@ -392,7 +392,7 @@ test('preferences persist between browser sessions and migrate older session set
     const migrated = createContext(older);
     assert.equal(migrated.getSaved().screenShareMode, 'detail');
     migrated.changeSaved({screenShareFPS: '24'});
-    const updatedLegacy = JSON.parse(local.get('cat-galene-settings'));
+    const updatedLegacy = JSON.parse(local.get('cat-meet-settings'));
     assert.equal(updatedLegacy.screenShareFPS, '24');
     assert.equal(updatedLegacy.screenShareMode, undefined);
 });
@@ -559,7 +559,7 @@ test('outgoing screen-share stats show measured size, FPS, bitrate and limitatio
     const source = galene.match(/function formatScreenShareStats\(stats\) \{[\s\S]*?\n\}\n/);
     assert.ok(source, 'missing measured screen-share quality');
     const sandbox = {
-        window: {CatGaleneI18n: {translate: value =>
+        window: {CatMeetI18n: {translate: value =>
             value === 'Network limit' ? '网络带宽限制' : value}},
     };
     vm.runInNewContext(source[0] +
@@ -596,4 +596,127 @@ test('WebRTC stats capture actual outgoing encoding metrics and UI remains trans
     const i18n = fs.readFileSync('static/i18n.js', 'utf8');
     assert.match(i18n, /"Actual outgoing quality:": "实际发送画质："/);
     assert.match(i18n, /"Not sharing": "未开始屏幕共享"/);
+});
+
+
+test('Cat-Meet rebranding covers primary user interfaces and release artifacts', () => {
+    const home = fs.readFileSync('static/index.html', 'utf8');
+    const meeting = fs.readFileSync('static/galene.html', 'utf8');
+    const statistics = fs.readFileSync('static/stats.html', 'utf8');
+    const windows = fs.readFileSync('client/windows/main_windows.go', 'utf8');
+    const release = fs.readFileSync('.github/workflows/release.yml', 'utf8');
+    for(const page of [home, meeting])
+        assert.match(page, /<title>Cat-Meet<\/title>/);
+    assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
+    assert.match(windows, /Cat-Meet · Windows 会议客户端/);
+    assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_windows_client/);
+    assert.match(release, /Cat-Meet-Client\.exe/);
+    assert.match(release, /"\$\{root\}\/cat-meet"/);
+    assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
+});
+
+test('old meeting and language preferences migrate to Cat-Meet storage', () => {
+    const source = fs.readFileSync('static/settings.js', 'utf8');
+    const values = new Map([['cat-galene-settings',
+        JSON.stringify({screenShareResolution: '4k',
+            screenShareFPS: '30', screenShareBitrate: '50',
+            audio: 'default'})]]);
+    const store = {
+        getItem: key => values.get(key) || null,
+        setItem: (key, value) => values.set(key, value),
+    };
+    const sandbox = {window: {localStorage: store, sessionStorage: store}};
+    vm.runInNewContext(source +
+        '\nthis.load = getSettings; this.save = updateSettings;', sandbox);
+    assert.equal(sandbox.load().screenShareResolution, '4k');
+    sandbox.save({video: ''});
+    const saved = JSON.parse(values.get('cat-meet-settings'));
+    assert.equal(saved.screenShareResolution, '4k');
+    assert.equal(saved.screenShareFPS, '30');
+    assert.equal(saved.screenShareBitrate, '50');
+    assert.equal(saved.video, '');
+
+    const code = fs.readFileSync('static/i18n.js', 'utf8');
+    const callbacks = {};
+    const document = {
+        body: null, head: null, documentElement: {lang: ''},
+        getElementById: () => null,
+        addEventListener: (event, fn) => {callbacks[event] = fn;},
+    };
+    const language = new Map([['cat-galene-language', 'zh-CN']]);
+    const localStorage = {
+        getItem: key => language.get(key) || null,
+        setItem: (key, value) => language.set(key, value),
+    };
+    const ctx = {document, localStorage, navigator: {language: 'en-US'},
+        window: {}};
+    vm.runInNewContext(code, ctx);
+    callbacks.DOMContentLoaded();
+    assert.equal(document.documentElement.lang, 'zh-CN');
+    assert.equal(language.get('cat-meet-language'), 'zh-CN');
+    assert.equal(ctx.window.CatMeetI18n.translate('Zoom in'), '放大画面');
+});
+
+test('screen sharing zoom and dragging are local and bounded', () => {
+    const script = fs.readFileSync('static/share-zoom.js', 'utf8');
+    function fakeElement(tag) {
+        const listeners = {};
+        const classes = new Set();
+        const elt = {
+            tagName: tag.toUpperCase(), className: '', children: [],
+            style: {}, offsetWidth: 800, offsetHeight: 450,
+            listeners, classes,
+            classList: {add: value => classes.add(value)},
+            setAttribute: () => {},
+            appendChild(child) {this.children.push(child);},
+            addEventListener(type, callback) {listeners[type] = callback;},
+            querySelector(selector) {
+                return selector === '.share-zoom-controls' ?
+                    this.children.find(c => c.className === 'share-zoom-controls') : null;
+            },
+        };
+        return elt;
+    }
+    const sandbox = {document: {createElement: tag => fakeElement(tag)}};
+    vm.runInNewContext(script +
+        '\nthis.enableZoom = enableScreenShareZoom;' +
+        '\nthis.limitPan = clampScreenSharePan;', sandbox);
+    const media = fakeElement('video');
+    const container = fakeElement('div');
+    const originalStream = {id: 'shared-screen'};
+    media.srcObject = originalStream;
+    sandbox.enableZoom(media, container);
+    sandbox.enableZoom(media, container);
+    assert.equal(container.children.length, 1, 'toolbar should not be duplicated');
+    assert.ok(container.classes.has('peer-screen-share'));
+    const [out, percentage, plus, reset] = container.children[0].children;
+    const click = button => button.listeners.click({preventDefault() {}});
+    assert.equal(percentage.textContent, '100%');
+    click(plus);
+    assert.equal(percentage.textContent, '125%');
+    assert.equal(media.style.touchAction, 'none');
+    let pan = sandbox.limitPan(1.25, 600, 600, 800, 450);
+    assert.equal(pan.x, 100);
+    assert.equal(pan.y, 56.25);
+    media.listeners.pointerdown({
+        button: 0, pointerId: 7, clientX: 0, clientY: 0,
+        preventDefault() {},
+    });
+    media.listeners.pointermove({pointerId: 7, clientX: 400, clientY: 400});
+    assert.match(media.style.transform, /translate\(100px, 56\.25px\) scale\(1\.25\)/);
+    media.listeners.pointerup({pointerId: 7});
+    click(reset);
+    assert.equal(percentage.textContent, '100%');
+    assert.equal(media.style.transform, 'translate(0px, 0px) scale(1)');
+    click(out);
+    assert.equal(percentage.textContent, '75%');
+    media.listeners.wheel({
+        ctrlKey: true, deltaY: -1, preventDefault() {},
+    });
+    assert.equal(percentage.textContent, '100%');
+    assert.equal(media.srcObject, originalStream,
+        'viewing zoom must not replace or reconfigure the WebRTC stream');
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.ok(html.indexOf('/share-zoom.js') < html.indexOf('/galene.js'));
+    assert.match(galene, /if\(c\.label === 'screenshare'\)\s+enableScreenShareZoom/);
 });

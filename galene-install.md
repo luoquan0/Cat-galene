@@ -1,4 +1,8 @@
-# Galene installation instructions
+# Cat-Meet installation instructions
+
+> Cat-Meet is based on Galène. Older documentation commands such as `galene`
+> and `galenectl`, and protocol identifiers, are intentionally supported for
+> compatibility. Release packages also provide `cat-meet` and `cat-meetctl`.
 
 ## Basic installation
 

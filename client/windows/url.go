@@ -45,7 +45,7 @@ func normaliseMeetingURL(input string) (meetingURL, origin string, err error) {
 		return "", "", errors.New("会议地址包含无效字符")
 	}
 	u.Scheme = scheme
-	// The Galene meeting protocol uses paths and query parameters.
+	// The Cat-Meet client uses the existing Galene-compatible meeting paths.
 	u.Fragment = ""
 	u.RawFragment = ""
 	return u.String(), u.Scheme + "://" + u.Host, nil

@@ -1,70 +1,70 @@
-# The Galene videoconferencing system
+# Cat-Meet
 
-## Cat-galene downloads
+Cat-Meet is a self-hosted video meeting system based on the open-source
+[Galène](https://galene.org/) WebRTC server. It includes Chinese/English
+meeting pages, independent microphone and camera controls, configurable
+high-resolution screen sharing, and a Windows meeting client.
 
-This fork publishes **Linux server** packages and separate **Windows
-meeting client** packages. The Windows client joins a remote Galene server;
-it does not run a conference server locally. It opens meeting URLs in a
-standalone Microsoft Edge or Google Chrome application window, retaining
-browser-native video, audio, and screen sharing. See
-[Windows client instructions](client/windows/README.md).
+## Downloads
 
-Download packages from [Cat-galene Releases](https://github.com/luoquan0/Cat-galene/releases).
+Get the latest **Cat-Meet Linux server** or **Cat-Meet Windows client**
+from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).
 
-Galene is a fully-featured videoconferencing system that is easy to deploy
-and requires very moderate server resources.  It is described at
-<https://galene.org>.
+- **Linux**: the `cat-meet` video meeting server and `cat-meetctl`
+  administrative tool. Compatibility commands `galene` and `galenectl`
+  are included for existing installations.
+- **Windows**: `Cat-Meet-Client.exe`, a small standalone launcher that
+  opens a remote meeting URL using Microsoft Edge or Google Chrome.
+  Windows is a **client**, not an additional server.
 
-## Quick start
+The Linux server hosts the actual WebRTC conference pages. When upgrading,
+update the Linux server package and refresh the browser UI.
+
+## Quick start (source)
 
 ```sh
-git clone https://github.com/jech/galene
-cd galene
-CGO_ENABLED=0 go build -ldflags='-s -w'
-mkdir groups
-echo '{"users": {"vimes": {"password":"sybil", "permissions":"op"}}}' > groups/night-watch.json
-./galene &
+git clone https://github.com/luoquan0/Cat-galene.git
+cd Cat-galene
+CGO_ENABLED=0 go build -o cat-meet .
+mkdir -p groups
+echo '{"users":{"vimes":{"password":"sybil","permissions":"op"}}}' > groups/night-watch.json
+./cat-meet &
 ```
 
-Point your browser at <https://localhost:8443/group/night-watch/>, ignore
-the unknown certificate warning, and log in with username *vimes* and
-password *sybil*.
+Visit <https://localhost:8443/group/night-watch/>. Use a trusted HTTPS
+certificate for any Internet-facing deployment.
 
-For full installation instructions, please see the file [galene-install.md][1]
-in this directory.
+## Screen share and zoom
+
+Under meeting settings, choose native/720p/1080p/2K/4K/custom resolution,
+a frame rate (15–120 FPS or custom), and an independent screen-share bitrate.
+These preferences are stored in your browser and restored when you return.
+
+Each screen-sharing video has local viewing controls: **– / 100% / + / Reset**.
+Zoom between **50% and 400%** in 25% steps, and drag the video to inspect
+details while enlarged. **Ctrl + mouse wheel** also zooms. Viewing zoom does
+not change the shared stream's resolution or the bandwidth used.
 
 ## Documentation
 
-  * [galene-install.md][1]: full installation instructions
-  * [galene.md][2]: usage and administration;
-  * [galene-client.md][3]: writing clients;
-  * [galene-protocol.md][4]: the client protocol;
-  * [galene-api.md][5]: Galene's administrative API.
-  
-## Contributing
+- [Installation and deployment](galene-install.md)
+- [Server administration](galene.md)
+- [Writing a client](galene-client.md)
+- [Compatible signaling protocol](galene-protocol.md)
+- [Administrative API](galene-api.md)
+- [Windows meeting client](client/windows/README.md)
 
-In order to contribute to Galene, you may:
+## Upstream acknowledgements and compatibility
 
-  * send patches to [the Galene mailing list][6] by sending mail to
-    <galene@lists.galene.org>;
-  * submit pull requests on GitHub.
+Cat-Meet is built on Galène by **Juliusz Chroboczek**. The original source
+and protocol documentation are at <https://galene.org/>.
 
-For general discussion, please use the [Galene mailing list][6] (feel free
-to send mail without subscribing).  Please do not use Github for general
-discussion.
+We preserve the upstream Go module import path
+`github.com/jech/galene`, public URLs such as `/galene-api/v0/`, and
+existing configuration filenames. Renaming those internal identifiers
+would break established clients and user configurations. Original license
+notices and upstream authorship remain in place.
 
-## Further information
-
-Galène's web page is at <https://galene.org>.
-
-Answers to common questions and issues are at <https://galene.org/faq.html>.
-
-
--- Juliusz Chroboczek <https://www.irif.fr/~jch/>
-
-[1]: <galene-install.md>
-[2]: <galene.md>
-[3]: <galene-client.md>
-[4]: <galene-protocol.md>
-[5]: <galene-api.md>
-[6]: <https://lists.galene.org/>
+This repository is a downstream Cat-Meet product fork; please report
+Cat-Meet issues in this repository rather than the upstream Galène mailing
+list.
