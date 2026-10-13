@@ -333,7 +333,10 @@ func (t *rtpDownTrack) GetMaxBitrate() (uint64, int, int) {
 	now := rtptime.Jiffies()
 	layer := t.getLayerInfo()
 	r := t.maxBitrate.Get(now)
-	if r == ^uint64(0) {
+	// A newly created estimator may report zero before its first RTCP
+	// feedback. Treat that like a stale estimate instead of advertising
+	// a zero bitrate to the upstream encoder.
+	if r == 0 || r == ^uint64(0) {
 		if t.isScreenShare() {
 			r = initialScreenShareBitrate
 		} else {
