@@ -5,7 +5,7 @@ if not exist "data" mkdir "data"
 if not exist "groups" mkdir "groups"
 if not exist "data\config.json" (
     echo First launch: configure an administrator before starting the server.
-    galenectl.exe -admin-username admin initial-setup -config data\config.json
+    galenectl.exe -config data\galenectl.json -admin-username admin initial-setup -config data\config.json
     if errorlevel 1 (
         echo Initial setup failed.
         pause

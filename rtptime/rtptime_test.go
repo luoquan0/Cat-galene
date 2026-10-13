@@ -54,25 +54,31 @@ func differs(a, b, delta uint64) bool {
 }
 
 func TestTime(t *testing.T) {
+	start := time.Now()
 	a := Now(48000)
 	time.Sleep(40 * time.Millisecond)
 	b := Now(48000) - a
-	if differs(b, 40*48, 160) {
-		t.Errorf("Expected %v, got %v", 4*48, b)
+	expected := uint64(FromDuration(time.Since(start), 48000))
+	if differs(b, expected, 160) {
+		t.Errorf("Expected %v, got %v", expected, b)
 	}
 
+	start = time.Now()
 	c := Microseconds()
 	time.Sleep(4 * time.Millisecond)
 	d := Microseconds() - c
-	if differs(d, 4000, 1000) {
-		t.Errorf("Expected %v, got %v", 4000, d)
+	expected = uint64(time.Since(start) / time.Microsecond)
+	if differs(d, expected, 1000) {
+		t.Errorf("Expected %v, got %v", expected, d)
 	}
 
+	start = time.Now()
 	c = Jiffies()
 	time.Sleep(time.Second * 10000000 / JiffiesPerSec)
 	d = Jiffies() - c
-	if differs(d, 10000000, 1000000) {
-		t.Errorf("Expected %v, got %v", 10000000, d)
+	expected = uint64(FromDuration(time.Since(start), JiffiesPerSec))
+	if differs(d, expected, 1000000) {
+		t.Errorf("Expected %v, got %v", expected, d)
 	}
 }
 
