@@ -733,3 +733,25 @@ test('Galène 1.2.2 subgroup UI and participant activity labels are merged', () 
     assert.match(galene, /user-status-active/);
     assert.match(galene, /function setUpLabel\(/);
 });
+
+test('Firefox hides device IDs before permission: camera test uses default IDs safely', async () => {
+    let requested = 0;
+    const sandbox = {
+        navigator: {mediaDevices: {
+            enumerateDevices: async () => [
+                {kind: 'videoinput', label: '', deviceId: ''},
+                {kind: 'audioinput', label: '', deviceId: ''},
+            ],
+            getUserMedia: async () => {requested++; throw Error('unwanted request');},
+        }},
+        addSelectOption: (select, label, value) => select.options.push({label, value}),
+    };
+    vm.runInNewContext(cameraTestSource, sandbox);
+    const videoChoices = {options: []}, audioChoices = {options: []};
+    const camera = new sandbox.CameraTest(
+        {srcObject: null}, {width: 200, height: 40}, videoChoices, audioChoices);
+    await camera.setMediaChoices();
+    assert.equal(requested, 0);
+    assert.equal(videoChoices.options[0].value, 'default');
+    assert.equal(audioChoices.options[0].value, 'default');
+});
