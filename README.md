@@ -50,6 +50,14 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.10
+
+- Exit confirmation dialog for both the main leave button and settings logout, with best-effort mobile Back-gesture and page-close guards.
+- When sharing a screen, the screen stream becomes the large centered tile. Cameras appear as smaller edge thumbnails, while audio-only members use compact labels instead of blank video tiles.
+- Media optimization: screen sharing is not renegotiated when participant counts change; reduce frequent per-peer audio activity statistics and lower the resolution requested for peripheral camera streams during sharing. Actual WebRTC performance still depends on network and hardware.
+- An explicitly selected **Remember this login for 7 days** option stores a room-scoped, expiring bearer token from the server in this browser. The password is never saved in localStorage. Password changes and account deletion invalidate remembered sessions.
+- Remembered login is available for named room-password accounts; external auth-server accounts and wildcard guest credentials still need their normal login flow.
+
 ## Cat-Meet v1.2.2-cat.9
 
 - Moved the participant panel from the right side to a left-side drawer.

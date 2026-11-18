@@ -124,6 +124,7 @@ type clientMessage struct {
 	Dest             string                   `json:"dest,omitempty"`
 	Username         *string                  `json:"username,omitempty"`
 	Password         string                   `json:"password,omitempty"`
+	Remember         bool                     `json:"remember,omitempty"`
 	Token            string                   `json:"token,omitempty"`
 	Privileged       bool                     `json:"privileged,omitempty"`
 	Permissions      []string                 `json:"permissions,omitempty"`
@@ -1461,6 +1462,37 @@ func handleClientMessage(c *webClient, m clientMessage) error {
 			})
 		}
 		c.group = g
+		// A remembered session is issued only after a real room-password
+		// login succeeds, and never when joining with an invitation token.
+		if m.Remember && m.Token == "" && g.Description().AuthServer == "" {
+			key := make([]byte, 32)
+			if _, err := crand.Read(key); err == nil {
+				ticket := base64.RawURLEncoding.EncodeToString(key)
+				if binding, ok := g.RememberBinding(c.username, ticket); ok {
+					expires := time.Now().Add(7 * 24 * time.Hour)
+					username := c.username
+					_, err = token.Update(&token.Stateful{
+						Token:       ticket,
+						Group:       m.Group,
+						Username:    &username,
+						Permissions: append([]string(nil), c.permissions...),
+						Binding:     binding,
+						Expires:     &expires,
+					}, "")
+					if err != nil {
+						log.Printf("Remember login: %v", err)
+					} else {
+						c.write(clientMessage{
+							Type:     "remember",
+							Group:    m.Group,
+							Username: &username,
+							Token:    ticket,
+							Value:    expires.UTC().Format(time.RFC3339),
+						})
+					}
+				}
+			}
+		}
 	case "request":
 		requested, err := parseRequested(m.Request)
 		if err != nil {

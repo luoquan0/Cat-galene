@@ -445,3 +445,11 @@ func TestExpire(t *testing.T) {
 	expectTokens(t, s.tokens, tokens[:len(tokens)-1])
 	expectTokenFile(t, s.filename, tokens[:len(tokens)-1])
 }
+func TestStatefulClonePreservesRememberBinding(t *testing.T) {
+	original := &Stateful{Token: "random-token", Group: "meeting",
+		Binding: "account-binding"}
+	cloned := original.Clone()
+	if cloned.Binding != original.Binding {
+		t.Fatalf("remember binding was lost during token clone")
+	}
+}

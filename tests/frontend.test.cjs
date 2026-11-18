@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.9/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.9/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.9/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.9/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.10/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.10/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.10/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.10/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
@@ -1004,4 +1004,111 @@ test('chat attachments support clipboard images and group file sending', () => {
     assert.match(galene, /function sendFileToEveryone\(file\)/);
     assert.match(galene, /serverConnection\.sendFile\(id, file\)/);
     assert.match(galene, /function finishIncomingFileCard\(f, data\)/);
+});
+
+
+test('screen share is the main tile and microphone-only peers are compact', () => {
+    const body = galene.match(/function resizePeers\(\) \{[\s\S]*?\n\}\n\n\/\*\*\n \* Lexicographic order/);
+    assert.ok(body, 'responsive peer layout function was not found');
+    const makeClasses = () => {
+        const selected = new Set();
+        return {
+            add: (...names) => names.forEach(name => selected.add(name)),
+            remove: (...names) => names.forEach(name => selected.delete(name)),
+            contains: name => selected.has(name),
+            toggle: (name, enabled) => enabled ? selected.add(name) : selected.delete(name),
+        };
+    };
+    const makePeer = () => ({
+        classList: makeClasses(),
+        style: {setProperty() {}, removeProperty() {}},
+    });
+    const share = makePeer(), camera = makePeer(), voice = makePeer();
+    const peers = {
+        classList: makeClasses(), style: {}, offsetHeight: 800,
+        querySelectorAll: () => [],
+    };
+    const stage = {
+        classList: makeClasses(), offsetHeight: 800, offsetWidth: 1200,
+    };
+    const streams = {
+        share: {localId: 'share', label: 'screenshare',
+            stream: {getTracks: () => [{kind: 'video', readyState: 'live'}]}},
+        camera: {localId: 'camera', label: 'camera',
+            stream: {getTracks: () => [{kind: 'video', readyState: 'live'}]}},
+        voice: {localId: 'voice', label: 'camera',
+            stream: {getTracks: () => [{kind: 'audio', readyState: 'live'}]}},
+    };
+    const nodes = {'peers': peers, 'video-container': stage,
+        'peer-share': share, 'peer-camera': camera, 'peer-voice': voice};
+    const sandbox = {
+        serverConnection: {up: {share: streams.share}, down: {
+            camera: streams.camera, voice: streams.voice,
+        }},
+        document: {getElementById: id => nodes[id] || null},
+        scheduleReconsiderDownRate: () => {},
+    };
+    vm.runInNewContext(body[0].replace(/\n\n\/\*\*\n \* Lexicographic order$/, '') +
+        '\nthis.resize = resizePeers;', sandbox);
+    sandbox.resize();
+    assert.equal(peers.classList.contains('cm-has-share'), true);
+    assert.equal(share.classList.contains('cm-peer-main'), true);
+    assert.equal(camera.classList.contains('cm-peer-thumb'), true);
+    assert.equal(voice.classList.contains('cm-peer-audio'), true);
+    assert.equal(stage.classList.contains('cm-audio-only'), false);
+
+    streams.share.stream.getTracks = () => [];
+    streams.camera.stream.getTracks = () => [];
+    sandbox.resize();
+    assert.equal(peers.classList.contains('cm-has-share'), false);
+    assert.equal(stage.classList.contains('cm-audio-only'), true);
+});
+
+test('screen-share sender is not reconfigured when participants join or toggle microphones', async () => {
+    const body = galene.match(/async function reconsiderSendParameters\(\) \{[\s\S]*?\n\}\n\n\/\*\*\n \* Schedules a call/);
+    assert.ok(body, 'sender reconfiguration function not found');
+    let changes = 0;
+    const sandbox = {
+        cancelReconsiderParameters: () => {},
+        doSimulcast: () => true,
+        findUpMedia: () => ({label: 'screenshare'}),
+        serverConnection: {up: {share: {label: 'screenshare'}, camera: {label: 'camera'}}},
+        setSendParameters: async () => { changes++; },
+        getMaxVideoThroughput: () => 50000000,
+    };
+    vm.runInNewContext(body[0].replace(/\n\n\/\*\*\n \* Schedules a call$/, '') +
+        '\nthis.reconsider = reconsiderSendParameters;', sandbox);
+    await sandbox.reconsider();
+    assert.equal(changes, 0);
+    assert.match(galene, /activityDetectionInterval = 1000/);
+    assert.match(galene, /c\.label !== 'screenshare'/);
+});
+
+test('room login stores only a server-issued, 7-day room token and never a password', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const protocol = fs.readFileSync('static/protocol.js', 'utf8');
+    const server = fs.readFileSync('rtpconn/webclient.go', 'utf8');
+    const group = fs.readFileSync('group/group.go', 'utf8');
+    assert.match(html, /id="remember-login"/);
+    assert.match(galene, /const rememberedLoginMaxAge = 7 \* 24 \* 60 \* 60 \* 1000/);
+    assert.match(galene, /localStorage\.setItem\(rememberedLoginKey\(\)/);
+    assert.match(galene, /token: bearer, expires: expiry/);
+    assert.match(galene, /triedRememberedLogin/);
+    assert.match(protocol, /case 'remember':/);
+    assert.match(protocol, /m\.remember = true/);
+    assert.match(server, /m\.Remember && m\.Token == ""/);
+    assert.match(group, /rememberBinding\(username, creds\.Token\)/);
+    assert.doesNotMatch(galene, /localStorage\.setItem\([^\n]*password/i);
+});
+
+test('leaving a meeting requires confirmation and mobile back navigation is guarded', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const bridge = fs.readFileSync('static/cat-meet-v2.js', 'utf8');
+    assert.match(html, /id="cm-leave-confirm"/);
+    assert.match(html, /id="cm-leave-stay"/);
+    assert.match(html, /id="cm-leave-yes"/);
+    assert.match(bridge, /originalLeave\.addEventListener\('click'/);
+    assert.match(bridge, /window\.addEventListener\('popstate'/);
+    assert.match(bridge, /window\.addEventListener\('beforeunload'/);
+    assert.match(bridge, /history\.pushState/);
 });

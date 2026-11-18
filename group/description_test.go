@@ -321,3 +321,28 @@ func TestSubGroup(t *testing.T) {
 		t.Fatalf("UpdateDescription: got %v", err)
 	}
 }
+func TestRememberBindingInvalidatedOnPasswordChange(t *testing.T) {
+	password := "correct-horse"
+	desc := &Description{Users: map[string]UserDescription{
+		"alice": {Password: Password{Type: "plain", Key: &password}},
+	}}
+	binding, ok := desc.rememberBinding("alice", "random-token")
+	if !ok || binding == "" {
+		t.Fatalf("expected a remembered-login binding")
+	}
+	same, ok := desc.rememberBinding("alice", "random-token")
+	if !ok || same != binding {
+		t.Fatalf("binding must be stable for an unchanged password")
+	}
+	password = "new-password"
+	next, ok := desc.rememberBinding("alice", "random-token")
+	if !ok || next == binding {
+		t.Fatalf("password change should invalidate the previous binding")
+	}
+	if _, ok := desc.rememberBinding("missing", "random-token"); ok {
+		t.Fatalf("missing user must not get a remembered session")
+	}
+	if _, ok := desc.rememberBinding("alice", "different-token"); !ok {
+		t.Fatalf("current account should still permit a new session")
+	}
+}

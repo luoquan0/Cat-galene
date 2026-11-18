@@ -1,3 +1,13 @@
+18 November 2026: Cat-Meet v1.2.2-cat.10
+
+  * Added leave confirmation plus best-effort mobile back-navigation guard.
+  * Made screen shares the dominant centered stream, minimized camera tiles,
+    and rendered audio-only peers as small status chips.
+  * Prevented participant changes from renegotiating screen-share senders and
+    reduced the high-frequency stats work done during screen sharing.
+  * Added seven-day remembered logins via room-bound expiring server tokens;
+    current account credentials and permissions are verified on reuse.
+
 18 November 2026: Cat-Meet v1.2.2-cat.9
 
   * Moved the participant panel from the right column into a left-side drawer,

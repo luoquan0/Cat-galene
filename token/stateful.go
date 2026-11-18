@@ -22,6 +22,9 @@ type Stateful struct {
 	IncludeSubgroups bool       `json:"includeSubgroups,omitempty"`
 	Username         *string    `json:"username,omitempty"`
 	Permissions      []string   `json:"permissions"`
+	// Binding is set only on short-lived remembered-login tokens.
+	// It is checked against the current account password by group.GetPermission.
+	Binding          string     `json:"binding,omitempty"`
 	Expires          *time.Time `json:"expires,omitempty"`
 	NotBefore        *time.Time `json:"not-before,omitempty"`
 	IssuedAt         *time.Time `json:"issuedAt,omitempty"`
@@ -35,6 +38,7 @@ func (token *Stateful) Clone() *Stateful {
 		IncludeSubgroups: token.IncludeSubgroups,
 		Username:         token.Username,
 		Permissions:      append([]string(nil), token.Permissions...),
+		Binding:          token.Binding,
 		Expires:          token.Expires,
 		NotBefore:        token.NotBefore,
 		IssuedAt:         token.IssuedAt,

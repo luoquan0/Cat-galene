@@ -64,6 +64,57 @@ let token = null;
  */
 let probingState = null;
 
+// A server-issued, room-scoped bearer token; never persist the password.
+const rememberedLoginPrefix = 'cat-meet:remember:';
+const rememberedLoginMaxAge = 7 * 24 * 60 * 60 * 1000;
+let pendingRememberedLogin = null;
+let triedRememberedLogin = false;
+
+function rememberedLoginKey() {
+    return rememberedLoginPrefix + encodeURIComponent(group);
+}
+
+function forgetRememberedLogin() {
+    try {
+        localStorage.removeItem(rememberedLoginKey());
+    } catch(e) {
+        // Private browsing and disabled storage must not block room login.
+    }
+}
+
+function readRememberedLogin() {
+    try {
+        const item = JSON.parse(localStorage.getItem(rememberedLoginKey()) || 'null');
+        if(!item || item.group !== group || !item.username ||
+           typeof item.token !== 'string' || item.token.length < 32 ||
+           !Number.isFinite(item.expires) || Date.now() >= item.expires ||
+           item.expires - Date.now() > rememberedLoginMaxAge + 60000)
+            return null;
+        return item;
+    } catch(e) {
+        return null;
+    }
+}
+
+function gotRememberedLogin(groupName, username, bearer, expires) {
+    if(groupName !== group || !serverConnection ||
+       typeof username !== 'string' || typeof bearer !== 'string' ||
+       bearer.length < 32)
+        return;
+    const expiry = Date.parse(expires);
+    if(!Number.isFinite(expiry) || expiry <= Date.now() ||
+       expiry > Date.now() + rememberedLoginMaxAge + 60000)
+        return;
+    try {
+        localStorage.setItem(rememberedLoginKey(), JSON.stringify({
+            group: groupName, username, token: bearer, expires: expiry,
+        }));
+    } catch(e) {
+        // Successful logins still work when browser storage is unavailable.
+    }
+}
+
+
 /**
  * getElementById, then assert that the result is an HTMLSelectElement.
  *
@@ -354,7 +405,18 @@ function setChangePassword(username) {
 async function join() {
     let username = getInputElement('username').value.trim();
     let credentials;
-    if(token) {
+    if(pendingRememberedLogin) {
+        // A remembered login is a server-issued, seven-day room credential.
+        // Never use an invitation URL token to bypass the login form.
+        username = pendingRememberedLogin.username;
+        credentials = {
+            type: 'token',
+            token: pendingRememberedLogin.token,
+        };
+        pwAuth = false;
+        triedRememberedLogin = true;
+        pendingRememberedLogin = null;
+    } else if(token) {
         pwAuth = false;
         credentials = {
             type: 'token',
@@ -388,7 +450,11 @@ async function join() {
         getInputElement('password').value = '';
         if(!groupStatus.authServer) {
             pwAuth = true;
-            credentials = pw;
+            credentials = {
+                type: 'password',
+                password: pw,
+                remember: getInputElement('remember-login').checked,
+            };
         } else {
             pwAuth = false;
             credentials = {
@@ -464,7 +530,7 @@ function gotDownStream(c) {
         setMediaStatus(c);
     };
     c.onstats = gotDownStats;
-    if(getSettings().activityDetection)
+    if(getSettings().activityDetection && c.label !== 'screenshare')
         c.setStatsInterval(activityDetectionInterval);
 
     setMedia(c);
@@ -946,8 +1012,10 @@ getSelectElement('requestselect').onchange = function(e) {
     reconsiderDownRate();
 };
 
-const activityDetectionInterval = 200;
-const activityDetectionPeriod = 700;
+// getStats on every downstream PeerConnection is expensive at 5Hz,
+// especially during 4K sharing and while participants add microphones.
+const activityDetectionInterval = 1000;
+const activityDetectionPeriod = 2000;
 const activityDetectionThreshold = 0.2;
 
 getInputElement('activitybox').onchange = function(e) {
@@ -956,7 +1024,7 @@ getInputElement('activitybox').onchange = function(e) {
     updateSettings({activityDetection: this.checked});
     for(let id in serverConnection.down) {
         let c = serverConnection.down[id];
-        if(this.checked)
+        if(this.checked && c.label !== 'screenshare')
             c.setStatsInterval(activityDetectionInterval);
         else {
             c.setStatsInterval(0);
@@ -1282,8 +1350,14 @@ async function reconsiderSendParameters() {
     cancelReconsiderParameters();
     let s = doSimulcast();
     let promises = [];
+    // Joining users or toggling microphones must not rebuild an active 4K
+    // screen-share encoder or camera PeerConnection.
+    if(findUpMedia('screenshare'))
+        return;
     for(let id in serverConnection.up) {
         let c = serverConnection.up[id];
+        if(c.label === 'screenshare')
+            continue;
         promises.push(setSendParameters(
             c, getMaxVideoThroughput(c.label), s,
         ));
@@ -1326,7 +1400,7 @@ function doSimulcast() {
     default:
         let count = 0;
         for(let n in serverConnection.users) {
-            if(!serverConnection.users[n].permissions["system"]) {
+            if(!serverConnection.users[n].permissions.includes('system')) {
                 count++;
                 if(count > 2)
                     break;
@@ -2058,7 +2132,12 @@ function reconsiderDownRate(id) {
     }
 
     let low = false;
-    if(old && ('force' in old)) {
+    if(c.label === 'camera' &&
+       Object.values(serverConnection.down).some(stream =>
+           stream.label === 'screenshare')) {
+        // Keep the desktop readable while decoding tiny camera thumbnails.
+        low = true;
+    } else if(old && ('force' in old)) {
         low = old.force;
     } else {
         let media = /** @type {HTMLVideoElement} */
@@ -2464,41 +2543,80 @@ function updateLabelElement(label) {
 }
 
 function resizePeers() {
-    // Window resize can call this method too early
-    if (!serverConnection)
+    if(!serverConnection)
         return;
-    let count =
-        Object.keys(serverConnection.up).length +
-        Object.keys(serverConnection.down).length;
-    let peers = document.getElementById('peers');
-    let columns = Math.ceil(Math.sqrt(count));
-    if (!count)
-        // No video, nothing to resize.
+    const peers = document.getElementById('peers');
+    const container = document.getElementById('video-container');
+    if(!peers || !container)
         return;
-    let container = document.getElementById("video-container");
-    // Peers div has total padding of 40px, we remove 40 on offsetHeight
-    // Grid has row-gap of 5px
-    let rows = Math.ceil(count / columns);
-    let margins = (rows - 1) * 5 + 40;
 
-    if (count <= 2 && container.offsetHeight > container.offsetWidth) {
-        peers.style['grid-template-columns'] = "repeat(1, 1fr)";
-        rows = count;
-    } else {
-        peers.style['grid-template-columns'] = `repeat(${columns}, 1fr)`;
-    }
-    if (count === 1)
-        return;
-    let max_video_height = (peers.offsetHeight - margins) / rows;
-    let media_list = peers.querySelectorAll(".media");
-    for(let i = 0; i < media_list.length; i++) {
-        let media = media_list[i];
-        if(!(media instanceof HTMLMediaElement)) {
-            console.warn('Unexpected media');
+    const streams = Object.values(serverConnection.up)
+        .concat(Object.values(serverConnection.down));
+    const visuals = [];
+    const voices = [];
+
+    for(const c of streams) {
+        const peer = document.getElementById('peer-' + c.localId);
+        if(!peer)
             continue;
+        const tracks = c.stream?.getTracks?.() || [];
+        const video = tracks.some(t => t.kind === 'video' &&
+            t.readyState !== 'ended' && t.enabled !== false);
+        const audio = tracks.some(t => t.kind === 'audio' &&
+            t.readyState !== 'ended');
+        peer.classList.remove('cm-peer-audio', 'cm-peer-main',
+                              'cm-peer-thumb');
+        peer.style.removeProperty('--cm-audio-index');
+        peer.style.removeProperty('--cm-thumb-index');
+        if(video && !peer.classList.contains('peer-hidden')) {
+            visuals.push({c, peer});
+        } else if(audio && !video) {
+            peer.classList.remove('peer-hidden');
+            peer.classList.add('cm-peer-audio');
+            peer.style.setProperty('--cm-audio-index', String(voices.length));
+            voices.push(peer);
         }
-        media.style['max-height'] = max_video_height + "px";
     }
+
+    const shares = visuals.filter(item => item.c.label === 'screenshare');
+    const mainShare = shares[0];
+    const cameras = visuals.filter(item => item !== mainShare);
+    peers.classList.toggle('cm-has-share', !!mainShare);
+    peers.classList.toggle('cm-no-thumbnails', cameras.length === 0);
+    container.classList.toggle('cm-audio-only', visuals.length === 0);
+
+    if(mainShare) {
+        mainShare.peer.classList.add('cm-peer-main');
+        cameras.forEach((item, i) => {
+            item.peer.classList.add('cm-peer-thumb');
+            item.peer.style.setProperty('--cm-thumb-index', String(i));
+        });
+        // Screen share stays at full negotiated resolution, camera tracks
+        // appear as small overlays instead of equal-sized black tiles.
+        peers.style.gridTemplateColumns = '';
+        peers.querySelectorAll('.media').forEach(media => {
+            media.style.maxHeight = '';
+        });
+    } else {
+        const count = visuals.length;
+        if(count) {
+            let columns = Math.ceil(Math.sqrt(count));
+            if(count <= 2 && container.offsetHeight > container.offsetWidth)
+                columns = 1;
+            peers.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+            const rows = Math.ceil(count / columns);
+            const maxHeight = Math.max(0,
+                (peers.offsetHeight - (rows - 1) * 5 - 40) / rows);
+            visuals.forEach(item => {
+                const media = document.getElementById('media-' + item.c.localId);
+                if(media)
+                    media.style.maxHeight = count <= 1 ? '' : maxHeight + 'px';
+            });
+        } else {
+            peers.style.gridTemplateColumns = '1fr';
+        }
+    }
+    scheduleReconsiderDownRate();
 }
 
 /**
@@ -2872,6 +2990,11 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
 
     switch(kind) {
     case 'fail':
+        if(triedRememberedLogin) {
+            forgetRememberedLogin();
+            triedRememberedLogin = false;
+            displayWarning('7 天登录记录已失效，请重新输入会议室密码。');
+        }
         if(probingState === 'probing' && error === 'need-username') {
             probingState = 'need-username';
             setVisibility('passwordform', false);
@@ -2883,6 +3006,7 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
         setButtonsVisibility();
         return;
     case 'redirect':
+        triedRememberedLogin = false;
         this.close();
         token = null;
         if(typeof message !== 'string' || !message.startsWith('/') || message.startsWith('//')) {
@@ -2899,6 +3023,7 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
         return;
     case 'join':
     case 'change':
+        triedRememberedLogin = false;
         if(probingState === 'probing') {
             probingState = 'success';
             setVisibility('userform', false);
@@ -2918,6 +3043,9 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
         setChangePassword(pwAuth && !!groupStatus.canChangePassword &&
                           serverConnection.username
         );
+        // A successful room join also enables mobile-back navigation protection.
+        if(kind === 'join')
+            window.dispatchEvent(new Event('cat-meet-session-joined'));
         // Do not request microphone access merely to enable Safari autoplay.
         if(kind === 'change')
             return;
@@ -4657,6 +4785,10 @@ document.getElementById('loginform').onsubmit = async function(e) {
         throw new Error('Bad type for loginform');
 
     setVisibility('passwordform', true);
+    pendingRememberedLogin = null;
+    triedRememberedLogin = false;
+    if(!getInputElement('remember-login').checked)
+        forgetRememberedLogin();
 
     if(getInputElement('presentboth').checked)
         presentRequested = 'both';
@@ -4824,6 +4956,7 @@ async function serverConnect() {
     serverConnection.ondownstream = gotDownStream;
     serverConnection.onuser = gotUser;
     serverConnection.onjoined = gotJoined;
+    serverConnection.onremember = gotRememberedLogin;
     serverConnection.onchat = addToChatbox;
     serverConnection.onusermessage = gotUserMessage;
     serverConnection.onfiletransfer = gotFileTransfer;
@@ -4891,6 +5024,21 @@ async function start() {
     getInputElement('username').focus();
     getInputElement('connectbutton').disabled = false;
     setViewportHeight();
+
+    // Auto-login applies only to a password-verified, non-expired room session.
+    // Untrusted invitation URL tokens never enter this path.
+    if(!groupStatus.authServer && !parms.has('token')) {
+        const saved = readRememberedLogin();
+        if(saved) {
+            pendingRememberedLogin = saved;
+            getInputElement('username').value = saved.username;
+            // Preserve the default receive-only state; no camera/mic prompt.
+            presentRequested = null;
+            serverConnect();
+            return;
+        }
+    }
+    getInputElement('username').focus();
 }
 
 start();

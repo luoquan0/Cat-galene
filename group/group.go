@@ -1,6 +1,10 @@
 package group
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -961,6 +965,32 @@ func GetConfiguration() (*Configuration, error) {
 	return configuration.configuration, nil
 }
 
+// rememberBinding ties a seven-day session token to the account's current
+// password configuration.  Removing or changing that account invalidates it.
+// The token is a random secret; its MAC is never derived from the plaintext
+// password entered by a browser.
+func (desc *Description) rememberBinding(username, secret string) (string, bool) {
+	user, ok := desc.Users[username]
+	if !ok || user.Password.Type == "" || user.Password.Type == "wildcard" {
+		return "", false
+	}
+	data, err := json.Marshal(user.Password)
+	if err != nil {
+		return "", false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(data)
+	return hex.EncodeToString(mac.Sum(nil)), true
+}
+
+// RememberBinding is used after a successful password login to generate a
+// session binding without exposing group credentials to the WebSocket layer.
+func (g *Group) RememberBinding(username, secret string) (string, bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.description.rememberBinding(username, secret)
+}
+
 func (desc *Description) getPasswordPermission(creds ClientCredentials) (Permissions, error) {
 	if creds.Username == nil {
 		return Permissions{}, errors.New("username not provided")
@@ -1035,6 +1065,18 @@ func (desc *Description) GetPermission(groupname string, creds ClientCredentials
 			tok.Check(conf.CanonicalHost, groupname)
 		if err != nil {
 			return "", nil, &NotAuthorisedError{err: err}
+		}
+		// Session tokens are not general invitations. Revalidate the bound
+		// user's current password and permissions on every join.
+		if s, ok := tok.(*token.Stateful); ok && s.Binding != "" {
+			binding, found := desc.rememberBinding(username, creds.Token)
+			if !found || subtle.ConstantTimeCompare(
+				[]byte(binding), []byte(s.Binding)) != 1 {
+				return "", nil, &NotAuthorisedError{
+					err: errors.New("remembered session has expired or account changed"),
+				}
+			}
+			perms = desc.Users[username].Permissions.Permissions(desc)
 		}
 		if username == "" && creds.Username != nil {
 			if desc.userExists(*creds.Username) {

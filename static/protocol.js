@@ -421,6 +421,10 @@ ServerConnection.prototype.connect = function(url) {
         case 'ice':
             sc.gotRemoteIce(m.id, m.candidate);
             break;
+        case 'remember':
+            if(sc.onremember)
+                sc.onremember.call(sc, m.group, m.username, m.token, m.value);
+            break;
         case 'joined':
             if(m.kind === 'leave' || m.kind === 'fail') {
                 for(let id in sc.users) {
@@ -569,6 +573,8 @@ ServerConnection.prototype.join = async function(group, username, credentials, d
         switch(credentials.type) {
         case 'password':
             m.password = credentials.password;
+            if(credentials.remember === true)
+                m.remember = true;
             break;
         case 'token':
             m.token = credentials.token;

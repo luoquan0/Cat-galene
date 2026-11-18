@@ -2,6 +2,11 @@
 'use strict';
 (() => {
     const chinese = {
+    "Leave this meeting?": "确定退出当前会议吗？",
+    "Your microphone, camera and screen sharing will stop.": "退出后，麦克风、摄像头及屏幕共享将停止。",
+    "Stay in meeting": "继续参会",
+    "Confirm leave": "确认退出",
+    "Remember this login for 7 days": "7 天内免密登录（仅此设备）",
     "Admin console": "管理中心",
     "Invalid room name": "会议室名称不合法",
     "Microphone interrupted; reconnecting automatically": "麦克风连接中断，正在自动尝试恢复。",

@@ -38,6 +38,7 @@ jobs:
           test -s static/admin.css
           test -s static/cat-meet-home-compact.css
           test -s static/chaofan.png
+          test -s static/cat-meet-cute.css
           test -s static/cat-meet-v2.css
           test -s static/cat-meet-home-compact.css
           node --check static/admin.js
@@ -61,7 +62,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.9]'))
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.10]'))
     needs: verify
     permissions:
       contents: write
@@ -82,7 +83,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.2-cat.9" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.2-cat.10" >> "${GITHUB_ENV}"
           fi
 
       - name: Build Linux server packages
@@ -118,7 +119,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.2-cat.9 · cute responsive UI + chat attachments.
+          Cat-Meet v1.2.2-cat.10 · cute responsive UI + chat attachments.
 
           - Keeps the microphone auto-recovery and device reliability fixes from v1.2.2-cat.4.
           - Display account/password login immediately on room navigation; wait for room metadata before submit.

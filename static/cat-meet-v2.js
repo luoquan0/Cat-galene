@@ -17,9 +17,10 @@
         const mainrow = document.getElementById('mainrow');
         const leave = document.getElementById('cm-leave-button');
         const originalLeave = document.getElementById('disconnectbutton');
+        const leaveDialog = document.getElementById('cm-leave-confirm');
         if(!lobby || !sidebar || !chat || !usersTab || !chatTab ||
            !closeButton || !chatBackdrop || !peopleBackdrop ||
-           !sidebarToggle || !mainrow || !leave || !originalLeave)
+           !sidebarToggle || !mainrow || !leave || !originalLeave || !leaveDialog)
             return;
 
         function closeChat() {
@@ -85,7 +86,78 @@
 
         usersTab.addEventListener('click', () => selectTab('users'));
         chatTab.addEventListener('click', () => selectTab('chat'));
-        leave.addEventListener('click', () => originalLeave.click());
+
+        let allowExit = false;
+        let backRequested = false;
+        let historyGuardArmed = false;
+        function meetingJoined() {
+            return typeof serverConnection !== 'undefined' &&
+                !!serverConnection?.group;
+        }
+
+        function confirmLeave(fromBack) {
+            backRequested = fromBack;
+            if(typeof leaveDialog.showModal !== 'function') {
+                if(window.confirm('确定退出会议吗？')) {
+                    allowExit = true;
+                    originalLeave.click();
+                    if(fromBack)
+                        location.assign('/');
+                }
+                return;
+            }
+            if(!leaveDialog.open)
+                leaveDialog.showModal();
+        }
+
+        leave.addEventListener('click', event => {
+            event.preventDefault();
+            confirmLeave(false);
+        });
+
+        // The Settings -> Logout path must have exactly the same confirmation.
+        originalLeave.addEventListener('click', event => {
+            if(allowExit)
+                return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            confirmLeave(false);
+        }, true);
+
+        leaveDialog.addEventListener('close', () => {
+            const leaveConfirmed = leaveDialog.returnValue === 'leave';
+            const goHome = backRequested;
+            backRequested = false;
+            if(!leaveConfirmed)
+                return;
+            allowExit = true;
+            originalLeave.click();
+            if(goHome)
+                location.assign('/');
+        });
+
+        // Browser history is guarded separately from explicit Leave buttons.
+        // On mobile a Back swipe should open our confirmation, not lose the
+        // meeting instantly. Some browsers may still suppress beforeunload.
+        window.addEventListener('cat-meet-session-joined', () => {
+            allowExit = false;
+            if(historyGuardArmed)
+                return;
+            history.pushState({catMeetLeaveGuard: true}, '', location.href);
+            historyGuardArmed = true;
+        });
+        window.addEventListener('popstate', () => {
+            if(!meetingJoined() || allowExit)
+                return;
+            history.pushState({catMeetLeaveGuard: true}, '', location.href);
+            confirmLeave(true);
+        });
+        window.addEventListener('beforeunload', event => {
+            if(!meetingJoined() || allowExit)
+                return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
 
         closeButton.addEventListener('click', event => {
             event.preventDefault();
