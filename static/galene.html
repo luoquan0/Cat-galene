@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Cat-Meet</title>
+    <title>小猫会议 · Cat-Meet</title>
+    <link rel="icon" type="image/png" href="/chaofan.png?v=1.2.2-cat.6"/>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
-    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.1"/>
-    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.1"/>
-    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.4"/>
+    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.6"/>
+    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.6"/>
+    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.6"/>
     <link rel="author" href="https://www.irif.fr/~jch/"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/fontawesome.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/solid.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/regular.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/toastify/toastify.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/contextual/contextual.css"/>
-    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.5"/>
+    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.6"/>
   </head>
 
   <body class="cm-v2-room cm-prejoin">
@@ -39,7 +40,7 @@
                   <i class="fas fa-align-left" aria-hidden="true"></i>
                 </div>
                 <div class="cm-meeting-brand" aria-label="Cat-Meet">
-                  <span class="cm-meeting-brand-icon" aria-hidden="true">CM</span><strong>Cat-Meet</strong>
+                  <img class="cm-meeting-brand-logo" src="/chaofan.png" alt="小猫会议"><strong>Cat-Meet</strong>
                 </div><span class="cm-top-divider" aria-hidden="true"></span>
                 <h1 id="title" class="header-title">Cat-Meet</h1>
                 <label for="language-select" class="language-label">Language</label><select id="language-select" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
@@ -95,8 +96,14 @@
                   <div id="box"></div>
                   <div class="reply">
                     <form id="inputform">
-                      <textarea id="input" class="form-reply"></textarea>
-                      <input id="inputbutton" type="submit" value="&#10148;" class="btn btn-default"/>
+                      <textarea id="input" class="form-reply" aria-label="聊天消息"></textarea>
+                      <div class="cm-chat-actions">
+                        <button id="attachbutton" type="button" class="cm-chat-attach" aria-label="发送图片或文件" title="图片 / 文件">
+                          <i class="fas fa-paperclip" aria-hidden="true"></i>
+                        </button>
+                        <input id="attachment-input" type="file" multiple hidden>
+                        <input id="inputbutton" type="submit" value="&#10148;" class="btn btn-default" aria-label="发送消息"/>
+                      </div>
                     </form>
                   </div>
                 </div>
@@ -118,7 +125,7 @@
                   <div id="peers"></div>
                 </div>
                 <div class="cm-empty-stage" aria-hidden="true">
-                  <span class="cm-wait-icon">CM</span>
+                  <img class="cm-wait-logo" src="/chaofan.png" alt="">
                   <h2>Ready when you are</h2>
                   <p>Participant video and screen sharing will appear here when connected.</p>
                 </div>
@@ -412,15 +419,15 @@
       </form>
     </dialog>
 
-    <script src="/protocol.js?v=1.2.2-cat.1" defer></script>
+    <script src="/protocol.js?v=1.2.2-cat.6" defer></script>
     <script src="/third-party/toastify/toastify.js" defer></script>
     <script src="/third-party/contextual/contextual.js" defer></script>
-    <script src="/settings.js?v=1.2.2-cat.1" defer></script>
+    <script src="/settings.js?v=1.2.2-cat.6" defer></script>
     <script src="/filter.js" defer></script>
-    <script src="/camera-test.js?v=1.2.2-cat.4" defer></script>
-    <script src="/share-zoom.js?v=1.2.2-cat.1" defer></script>
-    <script src="/galene.js?v=1.2.2-cat.5" defer></script>
-    <script src="/cat-meet-v2.js?v=1.2.2-cat.1" defer></script>
+    <script src="/camera-test.js?v=1.2.2-cat.6" defer></script>
+    <script src="/share-zoom.js?v=1.2.2-cat.6" defer></script>
+    <script src="/galene.js?v=1.2.2-cat.6" defer></script>
+    <script src="/cat-meet-v2.js?v=1.2.2-cat.6" defer></script>
     <script src="/i18n.js?v=1.2.2-cat.2" defer></script>
   </body>
 </html>

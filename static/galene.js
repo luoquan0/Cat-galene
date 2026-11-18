@@ -2966,129 +2966,271 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
 /**
  * @param {TransferredFile} f
  */
-function gotFileTransfer(f) {
-    f.onevent = gotFileTransferEvent;
-    let p = document.createElement('p');
+function formatFileSize(size) {
+    if(!Number.isFinite(size) || size < 0)
+        return '';
+    if(size < 1024)
+        return \`\${size} B\`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = size;
+    let unit = -1;
+    while(value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit++;
+    }
+    return \`\${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} \${units[unit]}\`;
+}
+
+function isImageFileType(mimetype) {
+    return typeof mimetype === 'string' && mimetype.startsWith('image/');
+}
+
+function createFileAttachmentCard(f) {
+    let card = document.createElement('div');
+    card.className = 'cm-file-card';
+
+    let preview = document.createElement('div');
+    preview.className = 'cm-file-preview';
+    card.appendChild(preview);
+
+    let body = document.createElement('div');
+    body.className = 'cm-file-body';
+
+    let name = document.createElement('div');
+    name.className = 'cm-file-name';
+    name.textContent = f.name || '未命名文件';
+    body.appendChild(name);
+
+    let meta = document.createElement('div');
+    meta.className = 'cm-file-meta';
+    meta.textContent =
+        \`\${isImageFileType(f.mimetype) ? '图片' : '文件'} · \${formatFileSize(f.size)}\`;
     if(f.up)
-        p.textContent =
-        `We have offered to send a file called "${f.name}" ` +
-        `to user ${f.username}.`;
-    else
-        p.textContent =
-        `User ${f.username} offered to send us a file ` +
-        `called "${f.name}" of size ${f.size}.`
-    let bno = null, byes = null;
-    if(!f.up) {
-        byes = document.createElement('button');
-        byes.textContent = 'Accept';
-        byes.onclick = function(e) {
-            f.receive();
-        };
-        byes.id = "byes-" + f.fullid();
-    }
-    bno = document.createElement('button');
-    bno.textContent = f.up ? 'Cancel' : 'Reject';
-    bno.onclick = function(e) {
-        f.cancel();
-    };
-    bno.id = "bno-" + f.fullid();
-    let status = document.createElement('span');
-    status.id = 'status-' + f.fullid();
-    if(!f.up) {
-        status.textContent =
-            '(Choosing "Accept" will disclose your IP address.)';
-    }
-    let statusp = document.createElement('p');
-    statusp.id = 'statusp-' + f.fullid();
-    statusp.appendChild(status);
-    let div = document.createElement('div');
-    div.id = 'file-' + f.fullid();
-    div.appendChild(p);
-    if(byes)
-        div.appendChild(byes);
-    if(bno)
-        div.appendChild(bno);
-    div.appendChild(statusp);
-    div.classList.add('message');
-    div.classList.add('message-private');
-    div.classList.add('message-row');
-    let box = document.getElementById('box');
-    box.appendChild(div);
-    return div;
-}
+        meta.textContent += \` · 发送给 \${f.username || '成员'}\`;
+    body.appendChild(meta);
 
-/**
- * @param {TransferredFile} f
- * @param {string} status
- * @param {number} [value]
- */
-function setFileStatus(f, status, value) {
-    let statuselt = document.getElementById('status-' + f.fullid());
-    if(!statuselt)
-        throw new Error("Couldn't find statusp");
-    statuselt.textContent = status;
-    if(value) {
-        let progress = document.getElementById('progress-' + f.fullid());
-         if(!progress || !(progress instanceof HTMLProgressElement))
-            throw new Error("Couldn't find progress element");
-        progress.value = value;
-        let label = document.getElementById('progresstext-' + f.fullid());
-        let percent = Math.round(100 * value / progress.max);
-        label.textContent = `${percent}%`;
-    }
-}
+    let status = document.createElement('div');
+    status.className = 'cm-file-status';
+    status.textContent = f.up ? '正在发送…' : '等待接收';
+    body.appendChild(status);
 
-/**
- * @param {TransferredFile} f
- * @param {number} [max]
- */
-function createFileProgress(f, max) {
-    let statusp = document.getElementById('statusp-' + f.fullid());
-    if(!statusp)
-        throw new Error("Couldn't find status div");
-    /** @type HTMLProgressElement */
     let progress = document.createElement('progress');
-    progress.id = 'progress-' + f.fullid();
-    progress.classList.add('file-progress');
-    progress.max = max;
+    progress.className = 'cm-file-progress';
+    progress.max = Math.max(1, f.size || 1);
     progress.value = 0;
-    statusp.appendChild(progress);
-    let progresstext = document.createElement('span');
-    progresstext.id = 'progresstext-' + f.fullid();
-    progresstext.textContent = '0%';
-    statusp.appendChild(progresstext);
+    progress.hidden = true;
+    body.appendChild(progress);
+
+    let actions = document.createElement('div');
+    actions.className = 'cm-file-actions';
+
+    if(!f.up) {
+        let accept = document.createElement('button');
+        accept.type = 'button';
+        accept.className = 'cm-file-primary';
+        accept.textContent = isImageFileType(f.mimetype) ? '查看图片' : '接收文件';
+        accept.onclick = function() {
+            accept.disabled = true;
+            f.receive().catch(e => {
+                console.error(e);
+                f.cancel(e);
+            });
+        };
+        actions.appendChild(accept);
+
+        let reject = document.createElement('button');
+        reject.type = 'button';
+        reject.className = 'cm-file-secondary';
+        reject.textContent = '拒绝';
+        reject.onclick = function() {
+            f.cancel();
+        };
+        actions.appendChild(reject);
+    } else {
+        let cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'cm-file-secondary';
+        cancel.textContent = '取消';
+        cancel.onclick = function() {
+            f.cancel();
+        };
+        actions.appendChild(cancel);
+    }
+
+    card.appendChild(body);
+    card.appendChild(actions);
+    card.cmStatus = status;
+    card.cmProgress = progress;
+    card.cmPreview = preview;
+    card.cmActions = actions;
+    return card;
 }
 
-/**
- * @param {TransferredFile} f
- * @param {boolean} delyes
- * @param {boolean} delno
- * @param {boolean} [delprogress]
- */
-function delFileStatusButtons(f, delyes, delno, delprogress) {
-    let div = document.getElementById('file-' + f.fullid());
-    if(!div)
-        throw new Error("Couldn't find file div");
-    if(delyes) {
-        let byes = document.getElementById('byes-' + f.fullid())
-        if(byes)
-            div.removeChild(byes);
+function addFileCardToChat(f, card) {
+    const peerId = f.up ? serverConnection.id : f.userid;
+    const nick = f.up ? serverConnection.username : f.username;
+    addToChatbox(null, peerId, null, nick, new Date(),
+                 false, false, '', card);
+}
+
+function updateFileCardStatus(f, status, value) {
+    const card = f.cmCard;
+    if(!card)
+        return;
+    card.cmStatus.textContent = status;
+    if(typeof value === 'number') {
+        card.cmProgress.hidden = false;
+        card.cmProgress.value = Math.max(0, Math.min(card.cmProgress.max, value));
     }
-    if(delno) {
-        let bno = document.getElementById('bno-' + f.fullid())
-        if(bno)
-            div.removeChild(bno);
+}
+
+function finishIncomingFileCard(f, data) {
+    const card = f.cmCard;
+    if(!card)
+        return;
+
+    const blob = data instanceof Blob ?
+        data : new Blob([data], {type: f.mimetype || 'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    f.cmObjectUrl = url;
+
+    card.cmStatus.textContent = '已接收，可以下载';
+    card.cmProgress.hidden = true;
+
+    if(isImageFileType(f.mimetype)) {
+        const img = document.createElement('img');
+        img.className = 'cm-file-image';
+        img.src = url;
+        img.alt = f.name || '聊天图片';
+        img.loading = 'lazy';
+        card.cmPreview.replaceChildren(img);
     }
-    if(delprogress) {
-        let statusp = document.getElementById('statusp-' + f.fullid());
-        let progress = document.getElementById('progress-' + f.fullid());
-        let progresstext =
-            document.getElementById('progresstext-' + f.fullid());
-        if(progress)
-            statusp.removeChild(progress);
-        if(progresstext)
-            statusp.removeChild(progresstext);
+
+    const download = document.createElement('a');
+    download.className = 'cm-file-download';
+    download.href = url;
+    download.download = f.name || 'Cat-Meet-file';
+    download.textContent = isImageFileType(f.mimetype) ? '保存图片' : '下载文件';
+    card.cmActions.replaceChildren(download);
+}
+
+let activeFileBatch = null;
+
+function createFileBatchCard(file, total) {
+    const card = document.createElement('div');
+    card.className = 'cm-file-card cm-file-batch';
+
+    const preview = document.createElement('div');
+    preview.className = 'cm-file-preview';
+    if(file.type && file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.className = 'cm-file-image';
+        img.src = URL.createObjectURL(file);
+        img.alt = file.name || '聊天图片';
+        img.loading = 'lazy';
+        preview.appendChild(img);
+    } else {
+        preview.textContent = '📎';
     }
+    card.appendChild(preview);
+
+    const body = document.createElement('div');
+    body.className = 'cm-file-body';
+    const name = document.createElement('div');
+    name.className = 'cm-file-name';
+    name.textContent = file.name || '未命名文件';
+    body.appendChild(name);
+
+    const meta = document.createElement('div');
+    meta.className = 'cm-file-meta';
+    meta.textContent =
+        \`\${file.type && file.type.startsWith('image/') ? '图片' : '文件'} · \${formatFileSize(file.size)} · \${total} 位成员\`;
+    body.appendChild(meta);
+
+    const status = document.createElement('div');
+    status.className = 'cm-file-status';
+    status.textContent = \`发送中 · 0/\${total}\`;
+    body.appendChild(status);
+
+    card.appendChild(body);
+    card.cmStatus = status;
+    return card;
+}
+
+function updateFileBatchCard(batch) {
+    if(!batch || !batch.card)
+        return;
+    const completed = batch.done + batch.failed;
+    if(batch.failed) {
+        batch.card.cmStatus.textContent =
+            \`已完成 \${completed}/\${batch.total}\` +
+            \` · \${batch.done} 成功 · \${batch.failed} 失败\`;
+    } else if(batch.done >= batch.total) {
+        batch.card.cmStatus.textContent = \`已发送给 \${batch.total} 位成员\`;
+    } else {
+        batch.card.cmStatus.textContent =
+            \`发送中 · \${batch.done}/\${batch.total}\`;
+    }
+}
+
+function sendFileToEveryone(file) {
+    if(!(file instanceof File))
+        return;
+    if(!serverConnection || !serverConnection.socket) {
+        displayError('请先加入会议后再发送文件');
+        return;
+    }
+
+    const ids = Object.keys(serverConnection.users).filter(id =>
+        id !== serverConnection.id
+    );
+    if(ids.length === 0) {
+        displayMessage('当前会议还没有其他参会者');
+        return;
+    }
+
+    const batch = {
+        file: file,
+        total: ids.length,
+        done: 0,
+        failed: 0,
+        transfers: [],
+        card: createFileBatchCard(file, ids.length),
+    };
+    addToChatbox(null, serverConnection.id, null, serverConnection.username,
+                 new Date(), false, false, '', batch.card);
+
+    activeFileBatch = batch;
+    for(const id of ids) {
+        try {
+            serverConnection.sendFile(id, file);
+        } catch(e) {
+            console.error(e);
+            batch.failed++;
+        }
+    }
+    activeFileBatch = null;
+    updateFileBatchCard(batch);
+}
+
+function gotFileTransfer(f) {
+    if(f.up && activeFileBatch) {
+        const batch = activeFileBatch;
+        batch.transfers.push(f);
+        f.onevent = function(state) {
+            if(state === 'done')
+                batch.done++;
+            else if(state === 'cancelled')
+                batch.failed++;
+            updateFileBatchCard(batch);
+        };
+        return;
+    }
+
+    const card = createFileAttachmentCard(f);
+    f.cmCard = card;
+    f.onevent = gotFileTransferEvent;
+    addFileCardToChat(f, card);
 }
 
 /**
@@ -3097,44 +3239,33 @@ function delFileStatusButtons(f, delyes, delno, delprogress) {
  * @param {any} [data]
  */
 function gotFileTransferEvent(state, data) {
-    let f = this;
+    const f = this;
     switch(state) {
     case 'inviting':
+        updateFileCardStatus(f, f.up ? '等待对方接收…' : '等待接收…');
         break;
     case 'connecting':
-        delFileStatusButtons(f, true, false);
-        setFileStatus(f, 'Connecting...');
-        createFileProgress(f, f.size);
+        updateFileCardStatus(f, f.up ? '正在建立连接…' : '正在接收…', f.datalen);
         break;
     case 'connected':
-        setFileStatus(f, f.up ? 'Sending...' : 'Receiving...', f.datalen);
+        updateFileCardStatus(f, f.up ? '正在发送…' : '正在接收…', f.datalen);
         break;
     case 'done':
-        delFileStatusButtons(f, true, true, true);
-        setFileStatus(f, 'Done.');
-        if(!f.up) {
-            let url = URL.createObjectURL(data);
-            let a = document.createElement('a');
-            a.href = url;
-            a.textContent = f.name;
-            a.download = f.name;
-            a.type = f.mimetype;
-            a.click();
-            URL.revokeObjectURL(url);
+        if(f.up) {
+            updateFileCardStatus(f, '已发送');
+        } else {
+            finishIncomingFileCard(f, data);
         }
         break;
     case 'cancelled':
-        delFileStatusButtons(f, true, true, true);
-        if(data)
-            setFileStatus(f, `Cancelled: ${data.toString()}.`);
-        else
-            setFileStatus(f, 'Cancelled.');
+        updateFileCardStatus(f,
+            data ? \`已取消：\${data.toString()}\` : '传输已取消');
         break;
     case 'closed':
         break;
     default:
-        console.error(`Unexpected state "${state}"`);
-        f.cancel(`unexpected state "${state}" (this shouldn't happen)`);
+        console.error(\`Unexpected state "\${state}"\`);
+        f.cancel(\`unexpected state "\${state}" (this shouldn't happen)\`);
         break;
     }
 }
@@ -4389,6 +4520,40 @@ document.getElementById('inputform').onsubmit = function(e) {
     e.preventDefault();
     handleInput();
 };
+
+document.getElementById('attachbutton').onclick = function() {
+    const input = document.getElementById('attachment-input');
+    if(!(input instanceof HTMLInputElement))
+        return;
+    input.click();
+};
+
+document.getElementById('attachment-input').onchange = function() {
+    if(!(this instanceof HTMLInputElement))
+        return;
+    const files = Array.from(this.files || []);
+    for(const file of files)
+        sendFileToEveryone(file);
+    this.value = '';
+};
+
+document.getElementById('input').addEventListener('paste', function(e) {
+    if(!e.clipboardData)
+        return;
+    const files = Array.from(e.clipboardData.files || [])
+        .filter(file => file.type && file.type.startsWith('image/'));
+    if(files.length === 0)
+        return;
+
+    e.preventDefault();
+    for(const file of files)
+        sendFileToEveryone(file);
+
+    const text = e.clipboardData.getData('text/plain');
+    if(text)
+        this.setRangeText(text, this.selectionStart, this.selectionEnd, 'end');
+});
+
 
 document.getElementById('input').onkeypress = function(e) {
     if(e.key === 'Enter' && !e.ctrlKey && !e.shiftKey && !e.metaKey) {

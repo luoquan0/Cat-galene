@@ -5,13 +5,18 @@ Cat-Meet is a self-hosted video meeting system based on the open-source
 meeting pages, independent microphone and camera controls, configurable
 high-resolution screen sharing, with meeting participants joining directly from their web browsers.
 
-## Web interface (v2.1)
+## Web interface (v2.2 · kawaii Cat-Meet)
 
-Cat-Meet now ships the redesigned browser workspace, independent audio/video
-lobby choices, and a dark in-meeting stage with switchable participant and chat
-panels. It preserves the original Galène signaling, recording, access control,
-and 4K screen-sharing controls. Frontend assets use versioned URLs to reduce
-stale-cache problems after server upgrades.
+Cat-Meet now uses the uploaded `chaofan.png` Cat Studio branding across the
+homepage, meeting header, empty stage, and browser favicon. The meeting UI keeps
+the independent audio/video lobby controls and responsive participant/chat
+layout while switching the visual system to a warm cream, pink, rounded style.
+
+Chat now supports selecting files, pasting images directly from the clipboard,
+and sending the selected attachment to every participant currently in the
+meeting. Received attachments appear as chat cards with progress, image
+previews, and an explicit download/save action. Transfers remain peer-to-peer;
+future joiners do not receive files sent before they joined.
 
 ## 管理员后台与安全初始化
 
@@ -44,6 +49,15 @@ chmod 700 data groups
 受控跳转、CSP 和输出文本化来降低注入与恶意跳转风险。
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
+
+## Cat-Meet v1.2.2-cat.6
+
+- Added Cat Studio branding from `chaofan.png` to the web UI and favicon.
+- Added chat attachment controls, clipboard image paste, and group-wide file sending.
+- Received files now appear in the conversation with progress and download/save controls.
+- Reworked the meeting palette into a softer, rounded kawaii style.
+- The Linux release package includes `chaofan.png` beside the server so the built-in
+  branding endpoint works without requiring a second upload.
 
 ## Cat-Meet v1.2.2-cat.3
 

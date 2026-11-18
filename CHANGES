@@ -1,3 +1,14 @@
+18 November 2026: Cat-Meet v1.2.2-cat.6
+
+  * Added Cat Studio branding from chaofan.png to the homepage, meeting header,
+    empty stage, and browser favicon.
+  * Added clipboard image paste and file attachment controls to chat.
+  * Added group-wide peer-to-peer file sending to all participants currently
+    in the meeting, with in-chat progress, image previews, and download/save
+    actions for received files.
+  * Reworked the Cat-Meet browser visual language into a warm, rounded,
+    kawaii style while keeping the existing responsive layout and WebRTC UI.
+
 9 November 2026: Galene 1.2.2
 
   * Fixed camera selection in the camera test on Firefox.
