@@ -60,7 +60,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.4]'))
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.5]'))
     needs: verify
     permissions:
       contents: write
@@ -81,7 +81,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.2-cat.4" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.2-cat.5" >> "${GITHUB_ENV}"
           fi
 
       - name: Build Linux server packages
@@ -117,9 +117,9 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.2-cat.4 · microphone auto-recovery, immediate login and readable menus.
+          Cat-Meet v1.2.2-cat.5 · professional responsive UI refresh.
 
-          - Automatically recover microphone capture after unexpected mute/end, with backoff.
+          - Keeps the microphone auto-recovery and device reliability fixes from v1.2.2-cat.4.
           - Display account/password login immediately on room navigation; wait for room metadata before submit.
           - Fix unreadable participant menus and native dropdown option contrast.
           - Simplified desktop homepage: one meeting-name input and join action.
@@ -128,14 +128,14 @@ jobs:
           - Secure browser admin console for room, user, permission, and password management.
           - Interactive ./cat-meetctl bootstrap-admin creates private bcrypt-hashed credentials.
           - Same-origin admin checks, stricter admin CSP, URL validation and safer redirects.
-          - Redesigned browser workspace, pre-join lobby, and dark live meeting UI.
+          - Reworked the browser homepage, pre-join lobby, and live meeting UI with a flatter professional visual system.
           - Independent camera and microphone controls, including camera-only joins.
           - Includes upstream moderator-permission fixes, subgroup improvements,
             Firefox camera-test compatibility, and dependency updates.
           - Retains independent microphone/camera controls, Chinese/English
             interface, adjustable high-resolution screen share, and viewer zoom.
           - Participants join from their browsers; Windows desktop client is retired.
-          - Frontend assets are versioned to minimise stale browser caches.
+          - Added dedicated responsive desktop/tablet/mobile layout rules and bumped frontend asset cache versions.
           - Linux amd64/arm64 server packages and SHA256 checksums.
 
           See CHANGES and README for details.
