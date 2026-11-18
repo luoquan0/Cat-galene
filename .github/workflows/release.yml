@@ -35,6 +35,9 @@ jobs:
           go build -trimpath -o /tmp/cat-meet .
           go build -trimpath -o /tmp/cat-meetctl ./galenectl
           test -s static/cat-meet-v2.css
+          test -s static/admin.css
+          node --check static/admin.js
+          node --check static/mainpage.js
           node --check static/cat-meet-v2.js
           node --check static/galene.js
           node --check static/protocol.js
@@ -49,7 +52,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.1]'))
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.2]'))
     needs: verify
     permissions:
       contents: write
@@ -70,7 +73,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.2-cat.1" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.2-cat.2" >> "${GITHUB_ENV}"
           fi
 
       - name: Build Linux server packages
@@ -106,8 +109,11 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.2-cat.1 · Galène 1.2.2 Linux server, browser-first UI refresh.
+          Cat-Meet v1.2.2-cat.2 · Galène 1.2.2 Linux server with secure admin console.
 
+          - Secure browser admin console for room, user, permission, and password management.
+          - Interactive ./cat-meetctl bootstrap-admin creates private bcrypt-hashed credentials.
+          - Same-origin admin checks, stricter admin CSP, URL validation and safer redirects.
           - Redesigned browser workspace, pre-join lobby, and dark live meeting UI.
           - Independent camera and microphone controls, including camera-only joins.
           - Includes upstream moderator-permission fixes, subgroup improvements,

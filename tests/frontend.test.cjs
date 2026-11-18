@@ -814,3 +814,60 @@ test('Cat-Meet v2 keeps every share-quality and viewing zoom control', () => {
     assert.match(zoom, /state\.scale >= 4/);
     assert.match(zoom, /state\.scale <= 0\.5/);
 });
+
+
+test('admin console has complete room, user and password management forms', () => {
+    const page = fs.readFileSync('static/admin.html', 'utf8');
+    const source = fs.readFileSync('static/admin.js', 'utf8');
+    for(const id of ['login-panel', 'dashboard', 'login-form',
+        'create-group-form', 'edit-group-form', 'delete-group',
+        'create-user-form', 'edit-user-form', 'reset-password-form',
+        'delete-user', 'users-group', 'admin-identity', 'logout']) {
+        assert.match(page, new RegExp('id="' + id + '"'));
+    }
+    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.2"/);
+    assert.doesNotMatch(page, /\son(?:click|load|error|submit)\s*=/i);
+    assert.match(source, /\/galene-api\/v0\/\.admin-session/);
+    assert.match(source, /'If-None-Match'/);
+    assert.match(source, /'If-Match'/);
+    assert.match(source, /'Authorization'|Authorization: state\.authorization/);
+    assert.match(source, /'redirect': 'error'|redirect: 'error'/);
+    assert.match(source, /credentials: 'omit'/);
+    assert.match(source, /credentials/);
+    assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie|\binnerHTML\b|\beval\s*\(/);
+});
+
+test('admin dashboard only constructs same-origin managed paths and uses text nodes', () => {
+    const source = fs.readFileSync('static/admin.js', 'utf8');
+    assert.match(source, /function roomPath/);
+    assert.match(source, /function userPath/);
+    assert.match(source, /encodeURIComponent/);
+    assert.match(source, /function validRoom/);
+    assert.match(source, /function validUser/);
+    assert.match(source, /document\.createElement/);
+    assert.match(source, /\.textContent =/);
+    assert.match(source, /state\.authorization = ''/);
+    assert.match(source, /redirect: 'error'/);
+    const mainpage = fs.readFileSync('static/mainpage.js', 'utf8');
+    assert.match(mainpage, /group\.split\('\/'\)\.map\(encodeURIComponent\)/);
+    assert.match(mainpage, /Invalid room name/);
+    assert.doesNotMatch(mainpage, /'\/group\/' \+ group \+ '\/'/);
+});
+
+test('admin bootstrap is shipped and never writes CLI credential password', () => {
+    const source = fs.readFileSync('galenectl/bootstrap_admin.go', 'utf8');
+    assert.match(source, /bcrypt\.GenerateFromPassword\(password, 12\)/);
+    assert.match(source, /tmp\.Chmod\(0600\)/);
+    assert.match(source, /term\.ReadPassword/);
+    assert.match(source, /global admin already exists/);
+    assert.doesNotMatch(source, /AdminPassword:|AdminPassword\s*=|os\.WriteFile\([^)]*galenectl\.json/);
+});
+
+
+test('admin credentials require HTTPS except a loopback test host', () => {
+    const source = fs.readFileSync('static/admin.js', 'utf8');
+    assert.match(source, /location\.protocol !== 'https:'/);
+    assert.match(source, /localhost/);
+    assert.match(source, /127\.0\.0\.1/);
+    assert.match(source, /redirect: 'error'/);
+});

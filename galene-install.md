@@ -129,6 +129,31 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 ```
 
+### Cat-Meet secure administrator setup (recommended)
+
+For Cat-Meet Linux server releases, install `cat-meet`, `cat-meetctl`
+and `static/` from the same package. Run the following command as the
+dedicated service user **before starting the server**, from its working
+directory:
+
+```sh
+mkdir -p data groups
+chmod 700 data groups
+./cat-meetctl bootstrap-admin -config ./data/config.json -user admin
+```
+
+Enter and confirm a 12–72-byte password on the terminal. This command
+stores **only** a bcrypt cost-12 hash in `data/config.json` (mode 0600),
+preserves existing non-admin configuration, and enables `writableGroups`.
+It deliberately refuses to overwrite an existing global administrator.
+Do not put the password in scripts, command arguments, environment
+variables or any configuration served by the web server. Open the
+same-origin HTTPS `/admin.html` to manage rooms and room users.
+
+The legacy `galenectl initial-setup` below also creates a galenectl client
+config **containing the administrator password in plaintext**; prefer
+`bootstrap-admin` for new Cat-Meet deployments.
+
 ### Set up galenectl
 
 There are two ways to administer a Galene instance: by manually editing

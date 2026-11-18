@@ -125,6 +125,19 @@ one that non-operator users cannot join).
 All of the moderation commands are also available as command-line commands
 (see above), which is helpful when moderating large groups.
 
+## Cat-Meet browser administrator console
+
+The Cat-Meet Linux package includes a private browser administrator UI at
+`/admin.html`. Global server administrators defined in `data/config.json`
+can list, create, update and delete groups, and manage group-specific
+users, roles and passwords. The server checks permissions for every API
+request; `op` (meeting moderator) alone does not grant this access.
+
+Use the interactive `./cat-meetctl bootstrap-admin -config data/config.json -user admin`
+for the first global administrator, rather than legacy `initial-setup`,
+which creates a second client-side plaintext credential file. The admin
+bootstrap refuses to overwrite existing administrators.
+
 # Server administration
 
 ## The global configuration file

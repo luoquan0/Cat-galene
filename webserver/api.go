@@ -185,6 +185,34 @@ func apiCORS(w http.ResponseWriter, r *http.Request, methods string) bool {
 	return false
 }
 
+func apiAdminSession(w http.ResponseWriter, r *http.Request) {
+    if apiCORS(w, r, "HEAD, GET") {
+        return
+    }
+    if r.Method != "HEAD" && r.Method != "GET" {
+        methodNotAllowed(w, "HEAD, GET")
+        return
+    }
+    username, password, ok := r.BasicAuth()
+    if !ok || username == "" {
+        http.Error(w, "Forbidden", http.StatusForbidden)
+        return
+    }
+    allowed, err := globalAdminMatch(username, password)
+    if err != nil || !allowed {
+        http.Error(w, "Forbidden", http.StatusForbidden)
+        return
+    }
+    config, err := group.GetConfiguration()
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+    sendJSON(w, r, struct {
+        WritableGroups bool `json:"writableGroups"`
+    }{WritableGroups: config.WritableGroups})
+}
+
 func apiHandler(w http.ResponseWriter, r *http.Request) {
 	if !checkEntryRate(w, r) {
 		return
@@ -207,6 +235,12 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch kind {
+	case ".admin-session":
+		if rest != "" {
+			http.NotFound(w, r)
+			return
+		}
+		apiAdminSession(w, r)
 	case ".stats":
 		if rest != "" {
 			http.NotFound(w, r)
@@ -525,7 +559,11 @@ func passwordHandler(w http.ResponseWriter, r *http.Request, g, user string, wil
 		if done {
 			return
 		}
-		key, err := bcrypt.GenerateFromPassword(body, 8)
+        if len(body) > 72 {
+            http.Error(w, "bcrypt password must not exceed 72 bytes", http.StatusBadRequest)
+            return
+        }
+		key, err := bcrypt.GenerateFromPassword(body, 12)
 		if err != nil {
 			httpError(w, err)
 			return
