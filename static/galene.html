@@ -7,6 +7,7 @@
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <link rel="stylesheet" type="text/css" href="/common.css"/>
     <link rel="stylesheet" type="text/css" href="/galene.css"/>
+    <link rel="stylesheet" href="/cat-meet-v2.css"/>
     <link rel="author" href="https://www.irif.fr/~jch/"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/fontawesome.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/solid.min.css"/>
@@ -15,12 +16,16 @@
     <link rel="stylesheet" type="text/css" href="/third-party/contextual/contextual.css"/>
   </head>
 
-  <body>
+  <body class="cm-v2-room">
     <div id="main" class="app">
       <div class="row full-height">
         <nav id="left-sidebar">
           <div class="users-header">
-            <div class="cat-meet-header">Cat-Meet</div>
+            <div class="cat-meet-header">Participants</div>
+            <div class="cm-side-tabs" role="tablist" aria-label="Meeting sidebar">
+              <button type="button" id="cm-tab-users" role="tab" aria-controls="users" aria-selected="true">People</button>
+              <button type="button" id="cm-tab-chat" role="tab" aria-controls="chatbox" aria-selected="false">Chat</button>
+            </div>
           </div>
           <div class="header-sep"></div>
           <div id="users"></div>
@@ -32,10 +37,14 @@
                 <div class="collapse" title="Collapse left panel" id="sidebarCollapse">
                   <i class="fas fa-align-left" aria-hidden="true"></i>
                 </div>
+                <div class="cm-meeting-brand" aria-label="Cat-Meet">
+                  <span class="cm-meeting-brand-icon" aria-hidden="true">✦</span><strong>Cat-Meet</strong>
+                </div><span class="cm-top-divider" aria-hidden="true"></span>
                 <h1 id="title" class="header-title">Cat-Meet</h1>
                 <label for="language-select" class="language-label">Language</label><select id="language-select" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
               </div>
 
+              <span class="cm-top-note">Browser meeting · WebRTC</span>
               <ul class="nav-menu">
                 <li>
                   <button id="presentbutton" class="invisible btn btn-success">
@@ -71,6 +80,7 @@
                     <span><i class="fas fa-ellipsis-v" aria-hidden="true"></i></span>
                   </div>
                 </li>
+                <li><button id="cm-leave-button" type="button" class="cm-leave-button"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Leave meeting</span></button></li>
               </ul>
             </nav>
           </header>
@@ -106,11 +116,17 @@
                 <div id="expand-video" class="expand-video">
                   <div id="peers"></div>
                 </div>
+                <div class="cm-empty-stage" aria-hidden="true">
+                  <span class="cm-wait-icon">✦</span>
+                  <h2>Ready when you are</h2>
+                  <p>Participant video and screen sharing will appear here when connected.</p>
+                </div>
               </div>
               <div id="captions-container" class="invisible">
                 <div id="captions"></div>
               </div>
               <div class="login-container invisible" id="login-container">
+                <div class="cm-lobby-intro"><span class="cm-overline">PRE-JOIN / 02</span><h2>Ready to join your meeting?</h2><p>Choose your devices independently before connecting. No camera or microphone permission is requested until enabled.</p></div>
                 <div class="login-box">
                   <form id="loginform" class="loginform">
                     <div id="userform">
@@ -132,6 +148,10 @@
                       <p class="switch-radio">
                         <input id="presentmike" type="radio" name="presentradio" value="mike"/>
                         <label for="presentmike">Microphone</label>
+                      </p>
+                      <p class="switch-radio">
+                        <input id="presentcamera" type="radio" name="presentradio" value="camera"/>
+                        <label for="presentcamera">Camera only</label>
                       </p>
                       <p class="switch-radio">
                         <input id="presentboth" type="radio" name="presentradio" value="both"/>
@@ -399,6 +419,7 @@
     <script src="/camera-test.js" defer></script>
     <script src="/share-zoom.js" defer></script>
     <script src="/galene.js" defer></script>
+    <script src="/cat-meet-v2.js" defer></script>
     <script src="/i18n.js" defer></script>
   </body>
 </html>
