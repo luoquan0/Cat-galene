@@ -1490,6 +1490,8 @@ async function setUpStream(c, stream) {
         if(c.label === 'camera' && t.kind === 'audio') {
             // Preserve the user's mute preference across capture recovery.
             t.enabled = !settings.localMute;
+            if(!settings.localMute)
+                cancelAudioRecovery();
             t.onmute = () => {
                 if(getSettings().audio && !getSettings().localMute) {
                     setLocalMute(true, false);
@@ -1504,8 +1506,8 @@ async function setUpStream(c, stream) {
             };
         }
         t.onended = () => {
-            // A capture track can end when mobile browsers suspend or revoke
-            // a device. Keep other live tracks and recover the mic separately.
+            // A mobile OS may suspend or revoke one capture track. Keep
+            // other live tracks and recover the microphone separately.
             if(c.label === 'camera' && t.kind === 'audio') {
                 setLocalMute(true, false);
                 if(getSettings().audio && !getSettings().localMute)
@@ -1818,8 +1820,6 @@ async function addLocalMedia(localId) {
             setLocalMute(true, true);
     } else {
         setLocalMute(settings.localMute, false);
-        if(!settings.localMute)
-            cancelAudioRecovery();
     }
     updateCameraButton();
     setButtonsVisibility();
