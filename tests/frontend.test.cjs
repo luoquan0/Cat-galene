@@ -782,7 +782,7 @@ test('Cat-Meet v2 live meeting keeps Galene IDs and real media settings', () => 
     assert.match(html, /cat-meet-v2\.js\?v=1\.2\.2-cat\.\d+/);
     assert.match(css, /cm-v2-room/);
     assert.match(css, /cm-v2-home/);
-    assert.match(bridge, /MutationObserver\(reflectLobby\)/);
+    assert.match(bridge, /lobbyObserver\.observe\(lobby/);
     assert.doesNotMatch(bridge, /getUserMedia|getDisplayMedia|new ServerConnection/);
 });
 
