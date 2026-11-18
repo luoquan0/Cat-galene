@@ -55,6 +55,14 @@ stream when a replacement request fails. If one track ends, the other live media
 track is kept running. These browser/device behaviours still need validation on
 the target Android/iOS devices and webcams.
 
+## Cat-Meet v1.2.2-cat.4
+
+- The room login form is visible immediately while room metadata loads, avoiding a blank meeting stage before authentication.
+- Unexpected microphone track mute/end triggers bounded exponential-backoff recovery. Manual mute and explicit microphone-off choices are respected; camera tracks are kept when possible.
+- Dark meeting participant menus and native dropdown options use explicit high-contrast colors.
+
+Physical microphone/browser testing is still required for device/OS-specific capture failures.
+
 ## Downloads
 
 Get the **Cat-Meet Linux server** from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).

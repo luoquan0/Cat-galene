@@ -7,7 +7,7 @@
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.1"/>
     <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.1"/>
-    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.3"/>
+    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.4"/>
     <link rel="author" href="https://www.irif.fr/~jch/"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/fontawesome.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/solid.min.css"/>
@@ -16,7 +16,7 @@
     <link rel="stylesheet" type="text/css" href="/third-party/contextual/contextual.css"/>
   </head>
 
-  <body class="cm-v2-room">
+  <body class="cm-v2-room cm-prejoin">
     <div id="main" class="app">
       <div class="row full-height">
         <nav id="left-sidebar">
@@ -125,18 +125,18 @@
               <div id="captions-container" class="invisible">
                 <div id="captions"></div>
               </div>
-              <div class="login-container invisible" id="login-container">
+              <div class="login-container" id="login-container">
                 <div class="cm-lobby-intro"><span class="cm-overline">PRE-JOIN / 02</span><h2>Ready to join your meeting?</h2><p>Choose your devices independently before connecting. No camera or microphone permission is requested until enabled.</p></div>
                 <div class="login-box">
                   <form id="loginform" class="loginform">
                     <div id="userform">
                       <label for="username">Username</label>
-                      <input id="username" type="text" name="username"
+                      <input id="username" type="text" name="username" required
                              autocomplete="username" class="form-control"/>
                     </div>
                     <div id="passwordform">
                       <label for="password">Password</label>
-                      <input id="password" type="password" name="password"
+                      <input id="password" type="password" name="password" required
                              autocomplete="current-password" class="form-control"/>
                     </div>
                     <label>Enable at start:</label>
@@ -160,7 +160,7 @@
                     </div>
                     <div class="clear"></div>
                     <div class="connect">
-                      <input id="connectbutton" type="submit" class="btn btn-blue" value="Connect"/>
+                      <input id="connectbutton" type="submit" class="btn btn-blue" value="Connect" disabled/>
                     </div>
                   </form>
                 </div>
@@ -418,8 +418,8 @@
     <script src="/filter.js" defer></script>
     <script src="/camera-test.js?v=1.2.2-cat.4" defer></script>
     <script src="/share-zoom.js?v=1.2.2-cat.1" defer></script>
-    <script src="/galene.js?v=1.2.2-cat.4" defer></script>
+    <script src="/galene.js?v=1.2.2-cat.5" defer></script>
     <script src="/cat-meet-v2.js?v=1.2.2-cat.1" defer></script>
-    <script src="/i18n.js?v=1.2.2-cat.1" defer></script>
+    <script src="/i18n.js?v=1.2.2-cat.2" defer></script>
   </body>
 </html>

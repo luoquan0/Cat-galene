@@ -4,6 +4,7 @@
     const chinese = {
     "Admin console": "管理中心",
     "Invalid room name": "会议室名称不合法",
+    "Microphone interrupted; reconnecting automatically": "麦克风连接中断，正在自动尝试恢复。",
     "Workspace navigation": "工作台导航",
     "Main navigation": "主导航",
     "Dashboard": "工作台",
