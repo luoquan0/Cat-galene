@@ -1,0 +1,938 @@
+/*
+ * Cat-Meet Professional UI
+ * Flat, product-focused visual system for desktop, tablet and mobile.
+ * Kept separate from the protocol/UI contract so the meeting logic is untouched.
+ */
+
+:root {
+    --cm-ui-bg: #f3f5f7;
+    --cm-ui-surface: #ffffff;
+    --cm-ui-border: #dfe3e8;
+    --cm-ui-text: #20252b;
+    --cm-ui-muted: #68727d;
+    --cm-ui-accent: #2f6fed;
+    --cm-ui-accent-hover: #245dcc;
+    --cm-meet-bg: #0f1216;
+    --cm-meet-surface: #15191e;
+    --cm-meet-surface-2: #1b2026;
+    --cm-meet-border: #2a3037;
+    --cm-meet-text: #eef1f4;
+    --cm-meet-muted: #a4adb7;
+    --cm-danger: #dc4c55;
+    --cm-success: #37a76f;
+}
+
+body.cm-home-compact {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--cm-ui-bg);
+    color: var(--cm-ui-text);
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body.cm-home-compact .cm-compact-shell {
+    max-width: 1080px;
+    padding: 18px 28px 24px;
+}
+
+body.cm-home-compact .cm-compact-header {
+    min-height: 54px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--cm-ui-border);
+}
+
+body.cm-home-compact .cm-home-brand {
+    gap: 10px;
+    color: var(--cm-ui-text);
+    text-decoration: none;
+}
+
+body.cm-home-compact .cm-home-brand strong {
+    font-size: 19px;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+}
+
+body.cm-home-compact .cm-home-brand small {
+    color: var(--cm-ui-muted);
+    font-size: 9px;
+    letter-spacing: .1em;
+    font-weight: 650;
+}
+
+body.cm-home-compact .cm-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #20252b;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    box-shadow: none;
+}
+
+body.cm-home-compact .cm-compact-header label {
+    color: var(--cm-ui-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+body.cm-home-compact .cm-compact-header select {
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--cm-ui-border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--cm-ui-text);
+    font-size: 12px;
+    box-shadow: none;
+}
+
+body.cm-home-compact .cm-compact-card {
+    width: min(100%, 540px);
+    margin: clamp(72px, 13vh, 132px) auto 0;
+    padding: 38px 40px;
+    border: 1px solid var(--cm-ui-border);
+    border-radius: 12px;
+    background: var(--cm-ui-surface);
+    box-shadow: 0 8px 28px rgba(25, 31, 38, .06);
+}
+
+body.cm-home-compact .cm-compact-mark {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 22px;
+    border-radius: 8px;
+    background: #20252b;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    box-shadow: none;
+}
+
+body.cm-home-compact .cm-compact-card .cm-overline {
+    color: #7a838c;
+    font-size: 10px;
+    letter-spacing: .08em;
+}
+
+body.cm-home-compact .cm-compact-card h1 {
+    margin: 8px 0 9px;
+    color: var(--cm-ui-text);
+    font-size: 30px;
+    line-height: 1.2;
+    letter-spacing: -.035em;
+    font-weight: 750;
+}
+
+body.cm-home-compact .cm-compact-desc {
+    margin-bottom: 28px;
+    color: var(--cm-ui-muted);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+body.cm-home-compact .cm-compact-form > label {
+    color: #4f5963;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+body.cm-home-compact .cm-compact-input {
+    gap: 8px;
+}
+
+body.cm-home-compact .cm-compact-input input {
+    height: 46px;
+    border: 1px solid #cfd5dc;
+    border-radius: 7px;
+    background: #fff;
+    color: var(--cm-ui-text);
+    font-size: 13px;
+    box-shadow: none;
+}
+
+body.cm-home-compact .cm-compact-input input:focus {
+    outline: 2px solid rgba(47, 111, 237, .16);
+    border-color: var(--cm-ui-accent);
+}
+
+body.cm-home-compact .cm-compact-input button {
+    min-width: 96px;
+    border: 1px solid var(--cm-ui-accent);
+    border-radius: 7px;
+    background: var(--cm-ui-accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+body.cm-home-compact .cm-compact-input button:hover:not(:disabled) {
+    background: var(--cm-ui-accent-hover);
+}
+
+body.cm-home-compact .cm-compact-security {
+    margin-top: 21px;
+    padding-top: 15px;
+    border-top: 1px solid #edf0f2;
+    color: #7b858e;
+    font-size: 11px;
+}
+
+body.cm-home-compact .cm-compact-security span {
+    color: var(--cm-success);
+}
+
+body.cm-home-compact .cm-compact-shell > footer {
+    color: #8a949e;
+    font-size: 10px;
+}
+
+/* Meeting room: neutral dark UI, compact controls, no decorative gradients. */
+body.cm-v2-room {
+    background: var(--cm-meet-bg);
+    color: var(--cm-meet-text);
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body.cm-v2-room #main,
+body.cm-v2-room #mainrow {
+    background: var(--cm-meet-bg);
+}
+
+body.cm-v2-room #left-sidebar {
+    flex-basis: 300px;
+    min-width: 300px;
+    max-width: 300px;
+    background: #14181d;
+    border-left: 1px solid var(--cm-meet-border);
+    box-shadow: none;
+}
+
+body.cm-v2-room #left-sidebar .users-header {
+    min-height: 105px;
+    padding: 20px 18px 12px;
+    background: #14181d;
+    border-bottom: 1px solid var(--cm-meet-border);
+}
+
+body.cm-v2-room #left-sidebar .cat-meet-header {
+    color: var(--cm-meet-text);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+body.cm-v2-room .cm-side-tabs {
+    gap: 0;
+    margin-top: 13px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border-bottom: 1px solid #30363d;
+}
+
+body.cm-v2-room .cm-side-tabs button {
+    padding: 9px 6px 10px;
+    border-radius: 0;
+    color: #8e98a3;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+body.cm-v2-room .cm-side-tabs button[aria-selected="true"] {
+    background: transparent;
+    color: #fff;
+    box-shadow: inset 0 -2px 0 var(--cm-ui-accent);
+}
+
+body.cm-v2-room #users {
+    height: calc(100% - 108px);
+    padding: 5px 0 22px;
+    background: #14181d;
+}
+
+body.cm-v2-room #users .user-p {
+    min-height: 48px;
+    margin: 0 !important;
+    padding: 12px 34px 12px 18px !important;
+    border: 0;
+    border-bottom: 1px solid #252b31;
+    border-radius: 0;
+    background: transparent;
+    color: #dfe4e8;
+    font-size: 12px;
+}
+
+body.cm-v2-room #users > div:hover {
+    background: #1b2026;
+}
+
+body.cm-v2-room #users > div.user-status-active::after {
+    color: #7db3ff;
+}
+
+body.cm-v2-room .topnav.fixed-top {
+    height: 64px;
+    min-height: 64px;
+    padding: 0 18px;
+    background: #12161b !important;
+    border-bottom: 1px solid var(--cm-meet-border);
+}
+
+body.cm-v2-room .navbar,
+body.cm-v2-room .navbar .container {
+    background: #12161b !important;
+}
+
+body.cm-v2-room #header {
+    gap: 9px;
+}
+
+body.cm-v2-room header .collapse {
+    margin-right: 3px;
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: #1b2026;
+    color: #aab3bc;
+}
+
+body.cm-v2-room .cm-meeting-brand {
+    gap: 8px;
+    color: #f4f6f8;
+    font-size: 17px;
+    font-weight: 750;
+    letter-spacing: -.02em;
+}
+
+body.cm-v2-room .cm-meeting-brand-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: #2f6fed;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+
+body.cm-v2-room .cm-top-divider {
+    height: 20px;
+    margin-left: 4px;
+    background: #30363d;
+}
+
+body.cm-v2-room .cm-top-note {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: #7f8994;
+    font-size: 11px;
+}
+
+body.cm-v2-room #header #language-select {
+    min-height: 34px;
+    padding: 6px 8px;
+    border: 1px solid #343b43;
+    border-radius: 6px;
+    background: #191e24;
+    color: #dfe4e8;
+    box-shadow: none;
+}
+
+body.cm-v2-room .nav-menu {
+    left: calc((100% - 300px) / 2);
+    bottom: 14px;
+    gap: 3px;
+    padding: 6px;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    background: #151a20;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .35);
+}
+
+body.cm-v2-room .nav-menu .nav-link,
+body.cm-v2-room .nav-menu .btn {
+    width: 62px;
+    min-height: 50px;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 7px;
+    color: #dfe4e8;
+    font-size: 18px;
+}
+
+body.cm-v2-room .nav-menu .nav-link label {
+    color: #9ea7b0;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+body.cm-v2-room .nav-menu .nav-link:hover,
+body.cm-v2-room .nav-menu .btn:hover {
+    background: #222830;
+    color: #fff;
+}
+
+body.cm-v2-room .nav-menu .nav-link.muted {
+    background: #3a2226;
+    color: #ff9aa1;
+}
+
+body.cm-v2-room .nav-menu .nav-link.muted label {
+    color: #ffb4ba;
+}
+
+body.cm-v2-room #presentbutton,
+body.cm-v2-room #unpresentbutton {
+    width: 66px;
+    min-height: 50px;
+    border-radius: 7px;
+    font-size: 10px;
+}
+
+body.cm-v2-room #presentbutton {
+    background: #1f3a2e;
+    color: #8ed5af;
+}
+
+body.cm-v2-room #unpresentbutton {
+    background: #3a2226;
+    color: #ffb0b6;
+}
+
+body.cm-v2-room .cm-leave-button {
+    min-height: 50px;
+    padding: 0 15px;
+    border-radius: 7px;
+    background: var(--cm-danger);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+body.cm-v2-room .cm-leave-button:hover {
+    background: #c93f48;
+}
+
+body.cm-v2-room #right {
+    padding: 12px 12px 91px;
+}
+
+body.cm-v2-room #right .video-container {
+    border: 1px solid #293038;
+    border-radius: 10px;
+    background: #14181d;
+}
+
+body.cm-v2-room #peers {
+    padding: 10px;
+    gap: 8px;
+}
+
+body.cm-v2-room #peers .peer {
+    border: 1px solid #2b3239;
+    border-radius: 8px;
+    background: #1a1f25;
+    box-shadow: none;
+}
+
+body.cm-v2-room #peers .peer-active {
+    border-color: #4b82e6;
+    box-shadow: 0 0 0 1px #4b82e6;
+}
+
+body.cm-v2-room #peers .label {
+    padding: 5px 9px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, .72));
+    font-size: 10px;
+}
+
+body.cm-v2-room .cm-empty-stage {
+    color: #8e98a3;
+}
+
+body.cm-v2-room .cm-empty-stage .cm-wait-icon {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 14px;
+    border-radius: 8px;
+    background: #1b2026;
+    border: 1px solid #30363d;
+    color: #9ba5ae;
+    font-size: 9px;
+    font-weight: 800;
+}
+
+body.cm-v2-room #sidebarnav.sidenav {
+    background: #151a20;
+    box-shadow: -16px 0 35px rgba(0, 0, 0, .4);
+}
+
+body.cm-v2-room .sidenav-header {
+    height: 64px;
+    padding: 12px 16px;
+    background: #151a20;
+    border-bottom: 1px solid #30363d;
+}
+
+body.cm-v2-room .sidenav-header h2 {
+    color: #f0f3f6;
+    font-size: 17px;
+}
+
+body.cm-v2-room .sidenav-content {
+    background: #151a20;
+    color: #dce2e7;
+    padding: 16px 18px 40px;
+}
+
+body.cm-v2-room .sidenav-content fieldset {
+    margin-top: 14px;
+    padding: 13px;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+}
+
+body.cm-v2-room .sidenav-content legend {
+    color: #dfe4e8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.cm-v2-room .sidenav-content label {
+    color: #aeb7c0;
+}
+
+body.cm-v2-room .sidenav-content .select,
+body.cm-v2-room .sidenav-content input[type=number],
+body.cm-v2-room .sidenav-content input[type=text] {
+    border: 1px solid #3a424a;
+    border-radius: 6px;
+    background: #1b2026;
+    color: #edf1f4;
+}
+
+body.cm-v2-room .profile-logo {
+    background: #2f6fed;
+}
+
+body.cm-v2-room .share-zoom-controls {
+    background: #151a20;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+}
+
+/* Pre-join: practical two-column desktop, single-column mobile. */
+body.cm-v2-room.cm-prejoin #mainrow {
+    background: var(--cm-ui-bg);
+}
+
+body.cm-v2-room.cm-prejoin #right .login-container {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 24px 46px;
+    align-content: center;
+    padding: 42px max(24px, calc((100vw - 980px) / 2));
+    background: var(--cm-ui-bg);
+}
+
+body.cm-v2-room.cm-prejoin .cm-lobby-intro {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    padding: 0;
+}
+
+body.cm-v2-room.cm-prejoin .cm-lobby-intro .cm-overline {
+    color: #69747f;
+    font-size: 10px;
+    letter-spacing: .08em;
+}
+
+body.cm-v2-room.cm-prejoin .cm-lobby-intro h2 {
+    max-width: 430px;
+    margin: 7px 0 10px;
+    color: #20252b;
+    font-size: 30px;
+    line-height: 1.18;
+    letter-spacing: -.035em;
+}
+
+body.cm-v2-room.cm-prejoin .cm-lobby-intro p {
+    max-width: 460px;
+    color: #69747f;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+body.cm-v2-room.cm-prejoin .login-box {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    padding: 25px;
+    border: 1px solid var(--cm-ui-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 8px 26px rgba(25, 31, 38, .07);
+}
+
+body.cm-v2-room.cm-prejoin .loginform label {
+    color: #4f5963;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+body.cm-v2-room.cm-prejoin .loginform .form-control {
+    min-height: 42px;
+    padding: 9px 11px;
+    border: 1px solid #cfd5dc;
+    border-radius: 6px;
+    background: #fff;
+    color: #20252b;
+    font-size: 13px;
+    box-shadow: none;
+}
+
+body.cm-v2-room.cm-prejoin .loginform .form-control:focus {
+    outline: 2px solid rgba(47, 111, 237, .14);
+    border-color: var(--cm-ui-accent);
+}
+
+body.cm-v2-room.cm-prejoin .loginform .present-switch {
+    gap: 7px;
+    margin-top: 9px;
+}
+
+body.cm-v2-room.cm-prejoin .loginform .switch-radio {
+    padding: 9px;
+    border: 1px solid #dfe3e8;
+    border-radius: 7px;
+    background: #f9fafb;
+}
+
+body.cm-v2-room.cm-prejoin .loginform .switch-radio:has(input:checked) {
+    border-color: #8db1f2;
+    background: #f2f6fd;
+}
+
+body.cm-v2-room.cm-prejoin #connectbutton {
+    padding: 11px 12px;
+    border: 1px solid var(--cm-ui-accent);
+    border-radius: 7px;
+    background: var(--cm-ui-accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+body.cm-v2-room.cm-prejoin #connectbutton:hover:not(:disabled) {
+    background: var(--cm-ui-accent-hover);
+}
+
+body.cm-v2-room.cm-prejoin #test-camera {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 8px;
+    padding: 18px;
+    border: 1px solid var(--cm-ui-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: none;
+    color: #3f4852;
+}
+
+body.cm-v2-room.cm-prejoin #test-camera summary {
+    color: #2c343c;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+body.cm-v2-room.cm-prejoin #test-camera select {
+    border: 1px solid #cfd5dc;
+    border-radius: 6px;
+    background: #fff;
+    color: #28313a;
+}
+
+body.cm-v2-room.cm-prejoin #test-video {
+    border-radius: 7px;
+    background: #11161b;
+}
+
+body.cm-v2-room select option,
+body.cm-v2-room select optgroup {
+    background: #fff !important;
+    color: #20252b !important;
+}
+
+/* Mobile and small tablet: panels become drawers and controls remain touch-friendly. */
+@media (max-width: 960px) {
+    body.cm-v2-room #left-sidebar {
+        position: fixed;
+        right: 0;
+        top: 64px;
+        bottom: 0;
+        height: calc(100dvh - 64px);
+        flex-basis: 300px;
+        min-width: 300px;
+        max-width: 300px;
+        transform: translateX(105%);
+        box-shadow: -14px 0 34px rgba(0, 0, 0, .36);
+    }
+
+    body.cm-v2-room #left-sidebar.active {
+        transform: translateX(0);
+        flex-basis: 300px;
+        min-width: 300px;
+        max-width: 300px;
+    }
+
+    body.cm-v2-room .nav-menu {
+        left: 50%;
+    }
+
+    body.cm-v2-room .cm-top-note {
+        display: none;
+    }
+
+    body.cm-v2-room #header .language-label {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    body.cm-home-compact .cm-compact-shell {
+        padding: 14px 16px 18px;
+    }
+
+    body.cm-home-compact .cm-compact-header {
+        min-height: 48px;
+        padding-bottom: 10px;
+    }
+
+    body.cm-home-compact .cm-home-brand strong {
+        font-size: 18px;
+    }
+
+    body.cm-home-compact .cm-home-brand small {
+        display: none;
+    }
+
+    body.cm-home-compact .cm-compact-header label {
+        display: none;
+    }
+
+    body.cm-home-compact .cm-compact-header select {
+        min-height: 34px;
+    }
+
+    body.cm-home-compact .cm-compact-card {
+        margin-top: 12vh;
+        padding: 28px 22px;
+    }
+
+    body.cm-home-compact .cm-compact-card h1 {
+        font-size: 27px;
+    }
+
+    body.cm-home-compact .cm-compact-input {
+        flex-direction: column;
+    }
+
+    body.cm-home-compact .cm-compact-input button {
+        width: 100%;
+        min-height: 46px;
+    }
+
+    body.cm-v2-room .topnav.fixed-top {
+        height: 58px;
+        min-height: 58px;
+        padding: 0 10px;
+    }
+
+    body.cm-v2-room #header {
+        min-width: 0;
+        gap: 5px;
+    }
+
+    body.cm-v2-room header .collapse {
+        margin-right: 0;
+        padding: 7px;
+    }
+
+    body.cm-v2-room .cm-meeting-brand {
+        font-size: 15px;
+    }
+
+    body.cm-v2-room .cm-meeting-brand-icon {
+        width: 26px;
+        height: 26px;
+    }
+
+    body.cm-v2-room #title {
+        max-width: 120px;
+        padding: 0 3px;
+        font-size: 11px;
+    }
+
+    body.cm-v2-room #header #language-select {
+        min-height: 32px;
+        max-width: 80px;
+        padding: 5px 6px;
+        font-size: 10px;
+    }
+
+    body.cm-v2-room #mainrow {
+        height: calc(100dvh - 58px);
+    }
+
+    body.cm-v2-room #right {
+        padding: 7px 7px 82px;
+    }
+
+    body.cm-v2-room #right .video-container {
+        border-radius: 8px;
+    }
+
+    body.cm-v2-room #peers {
+        padding: 7px;
+        gap: 6px;
+    }
+
+    body.cm-v2-room #left-sidebar {
+        top: 58px;
+        height: calc(100dvh - 58px);
+    }
+
+    body.cm-v2-room #left-sidebar.active {
+        min-width: min(300px, 94vw);
+        max-width: min(300px, 94vw);
+    }
+
+    body.cm-v2-room .nav-menu {
+        left: 50%;
+        bottom: 7px;
+        width: max-content;
+        max-width: calc(100vw - 10px);
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    body.cm-v2-room .nav-menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.cm-v2-room .nav-menu .nav-link,
+    body.cm-v2-room .nav-menu .btn {
+        width: 50px;
+        min-height: 47px;
+        font-size: 16px;
+    }
+
+    body.cm-v2-room .nav-menu .nav-link label {
+        font-size: 8px;
+    }
+
+    body.cm-v2-room #presentbutton,
+    body.cm-v2-room #unpresentbutton {
+        width: 52px;
+        min-height: 47px;
+        font-size: 8px;
+    }
+
+    body.cm-v2-room .cm-leave-button {
+        min-height: 47px;
+        padding: 0 9px;
+        font-size: 9px;
+    }
+
+    body.cm-v2-room.cm-prejoin #mainrow {
+        height: calc(100dvh - 58px);
+    }
+
+    body.cm-v2-room.cm-prejoin #right .login-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        align-content: start;
+        padding: 26px 16px 36px;
+    }
+
+    body.cm-v2-room.cm-prejoin .cm-lobby-intro,
+    body.cm-v2-room.cm-prejoin .login-box,
+    body.cm-v2-room.cm-prejoin #test-camera {
+        grid-column: 1;
+    }
+
+    body.cm-v2-room.cm-prejoin .cm-lobby-intro {
+        grid-row: 1;
+    }
+
+    body.cm-v2-room.cm-prejoin .cm-lobby-intro h2 {
+        font-size: 25px;
+    }
+
+    body.cm-v2-room.cm-prejoin .login-box {
+        grid-row: 2;
+        padding: 20px;
+    }
+
+    body.cm-v2-room.cm-prejoin #test-camera {
+        grid-row: 3;
+        margin-top: 0;
+    }
+
+    body.cm-v2-room.cm-prejoin .loginform .present-switch {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    body.cm-home-compact .cm-compact-card {
+        margin-top: 9vh;
+        padding: 25px 18px;
+        border-radius: 9px;
+    }
+
+    body.cm-home-compact .cm-compact-card h1 {
+        font-size: 25px;
+    }
+
+    body.cm-v2-room .cm-meeting-brand {
+        gap: 6px;
+    }
+
+    body.cm-v2-room #title {
+        display: none;
+    }
+
+    body.cm-v2-room .nav-menu {
+        left: 50%;
+    }
+
+    body.cm-v2-room .nav-menu .nav-link,
+    body.cm-v2-room .nav-menu .btn {
+        width: 47px;
+    }
+
+    body.cm-v2-room .cm-leave-button {
+        padding: 0 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.cm-v2-room *,
+    body.cm-home-compact * {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

@@ -944,3 +944,23 @@ test('dark meeting menus and option lists use high contrast colors', () => {
     assert.match(theme, /select option,[\s\S]*?color: #202944 !important/);
     assert.match(theme, /background: #efedff !important/);
 });
+
+test('professional responsive UI is loaded on homepage and meeting room', () => {
+    const index = fs.readFileSync('static/index.html', 'utf8');
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.5/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.5/);
+    assert.match(css, /body\.cm-home-compact\s*\{/);
+    assert.match(css, /body\.cm-v2-room\s*\{/);
+    assert.match(css, /@media \(max-width: 760px\)/);
+    assert.match(css, /@media \(max-width: 480px\)/);
+    assert.match(css, /body\.cm-v2-room #left-sidebar\s*\{[\s\S]*?transform: translateX\(105%\)/);
+    assert.match(css, /body\.cm-v2-room \.nav-menu\s*\{[\s\S]*?max-width: calc\(100vw - 10px\)/);
+    assert.match(css, /body\.cm-v2-room\.cm-prejoin #right \.login-container\s*\{[\s\S]*?grid-template-columns: 1fr/);
+    assert.match(css, /background: #f3f5f7/);
+    assert.match(css, /background: #2f6fed/);
+    assert.equal((index.match(/cm-compact-card/g) || []).length > 0, true);
+    assert.match(index, /<span class="cm-logo">CM<\/span>/);
+    assert.match(html, /<span class="cm-meeting-brand-icon" aria-hidden="true">CM<\/span>/);
+});
