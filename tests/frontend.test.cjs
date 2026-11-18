@@ -907,3 +907,40 @@ test('camera preview restores previous stream when device switching fails', () =
     assert.match(source, /this\.video\.play\(\)/);
     assert.match(source, /DevicesNotFoundError/);
 });
+
+
+test('room login is visible immediately while room metadata loads', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.match(html, /<body class="cm-v2-room cm-prejoin">/);
+    assert.match(html, /<div class="login-container" id="login-container">/);
+    assert.doesNotMatch(html, /<div class="login-container invisible" id="login-container">/);
+    assert.match(html, /id="username"[^>]*required/);
+    assert.match(html, /id="password"[^>]*required/);
+    assert.match(html, /id="connectbutton"[^>]*disabled/);
+    assert.match(galene, /getInputElement\('connectbutton'\)\.disabled = false/);
+});
+
+test('microphone capture is automatically recovered after ended or muted tracks', () => {
+    assert.match(galene, /function scheduleAudioRecovery\\(force\\)/);
+    assert.match(galene, /Math\\.min\\(1000 \\* \\(2 \\*\\* Math\\.min\\(audioRecoveryState\\.attempts, 5\\)\\), 30000\\)/);
+    assert.match(galene, /t\\.onmute = \\(\\) =>/);
+    assert.match(galene, /t\\.onunmute = \\(\\) =>/);
+    assert.match(galene, /scheduleAudioRecovery\\(false\\)/);
+    assert.match(galene, /await addLocalMedia\\(current\\?\\.localId, forceCapture, true\\)/);
+    assert.match(galene, /kind === 'audio' && forceAudio/);
+    assert.match(galene, /setLocalMute\\(true, false\\)/);
+    assert.match(galene, /if\\(settings\\.audio\\)\\s+setLocalMute\\(true, false\\)/);
+});
+
+test('manual microphone mute or explicit audio-off never starts recovery', () => {
+    assert.match(galene, /if\\(!settings\\.audio \\|\\| settings\\.localMute \\|\\|/);
+    assert.match(galene, /if\\(!this\\.value\\)\\s+cancelAudioRecovery\\(\\)/);
+    assert.match(galene, /getSettings\\(\\)\\.localMute\\)\\s+scheduleAudioRecovery/);
+});
+
+test('dark meeting menus and option lists use high contrast colors', () => {
+    const theme = fs.readFileSync('static/cat-meet-v2.css', 'utf8');
+    assert.match(theme, /\\.contextualMenuItemTitle,[\\s\\S]*?color: #202944 !important/);
+    assert.match(theme, /select option,[\\s\\S]*?color: #202944 !important/);
+    assert.match(theme, /background: #efedff !important/);
+});

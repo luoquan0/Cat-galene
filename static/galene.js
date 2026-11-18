@@ -430,6 +430,7 @@ function onPeerConnection() {
  * @param {string} reason
  */
 function gotClose(code, reason) {
+    cancelAudioRecovery();
     closeUpMedia();
     setConnected(false);
     if(code !== 1000) {
@@ -511,6 +512,7 @@ getButtonElement('presentbutton').onclick = async function(e) {
 
 getButtonElement('unpresentbutton').onclick = function(e) {
     e.preventDefault();
+    cancelAudioRecovery();
     closeUpMedia('camera');
     // Prevent a later click on one device from silently reopening the other.
     updateSettings({audio: '', video: '', localMute: true});
@@ -632,6 +634,8 @@ getSelectElement('audioselect').onchange = function(e) {
     if(!(this instanceof HTMLSelectElement))
         throw new Error('Unexpected type for this');
     updateSettings({audio: this.value});
+    if(!this.value)
+        cancelAudioRecovery();
     if(serverConnection?.permissions?.includes('present'))
         addLocalMedia(findUpMedia('camera')?.localId);
 };
@@ -677,8 +681,13 @@ document.getElementById('mutebutton').onclick = async function(e) {
     }
     let c = findUpMedia('camera');
     let audio = c?.stream?.getAudioTracks().find(t => t.readyState === 'live');
-    if(audio) {
+    if(audio && !audio.muted) {
         setLocalMute(!getSettings().localMute, true);
+        return;
+    }
+    if(audio && audio.muted) {
+        setLocalMute(false, true);
+        await addLocalMedia(c?.localId, true);
         return;
     }
     // Device enumeration is not guaranteed until after the permission prompt.
@@ -688,7 +697,7 @@ document.getElementById('mutebutton').onclick = async function(e) {
         getSelectElement('audioselect').value = 'default';
     }
     setLocalMute(false, true);
-    await addLocalMedia(c?.localId);
+    await addLocalMedia(c?.localId, true);
 };
 
 function updateCameraButton() {
@@ -1361,6 +1370,84 @@ async function preferScreenShareResolution(c) {
  * @param {MediaStream} stream
  */
 
+// Recover a microphone capture that the browser or mobile OS unexpectedly ends
+// or mutes. A user-muted microphone is never restarted or unmuted automatically.
+const audioRecoveryState = {
+    timer: null,
+    attempts: 0,
+    force: false,
+    warned: false,
+};
+
+function cancelAudioRecovery() {
+    if(audioRecoveryState.timer !== null)
+        clearTimeout(audioRecoveryState.timer);
+    audioRecoveryState.timer = null;
+    audioRecoveryState.attempts = 0;
+    audioRecoveryState.force = false;
+    audioRecoveryState.warned = false;
+}
+
+function scheduleAudioRecovery(force) {
+    const settings = getSettings();
+    if(!settings.audio || settings.localMute ||
+       !serverConnection?.permissions?.includes('present'))
+        return;
+    if(force)
+        audioRecoveryState.force = true;
+    if(audioRecoveryState.timer !== null)
+        return;
+
+    const delay = audioRecoveryState.force ? 8000 :
+        Math.min(1000 * (2 ** Math.min(audioRecoveryState.attempts, 5)), 30000);
+    audioRecoveryState.timer = setTimeout(async () => {
+        audioRecoveryState.timer = null;
+        const currentSettings = getSettings();
+        if(!currentSettings.audio || currentSettings.localMute ||
+           !serverConnection?.permissions?.includes('present')) {
+            cancelAudioRecovery();
+            return;
+        }
+
+        const current = findUpMedia('camera');
+        const existing = current?.stream?.getAudioTracks().find(track =>
+            track.readyState === 'live');
+        if(existing && !existing.muted && !audioRecoveryState.force) {
+            cancelAudioRecovery();
+            return;
+        }
+
+        const forceCapture = audioRecoveryState.force || !existing || existing.muted;
+        audioRecoveryState.force = false;
+        try {
+            // forceCapture obtains a fresh audio track even if an old track is
+            // still marked live but has stopped delivering samples. Video is
+            // reused, so microphone recovery does not interrupt the camera.
+            await addLocalMedia(current?.localId, forceCapture, true);
+        } catch(error) {
+            console.warn('Automatic microphone recovery failed', error);
+        }
+
+        const updated = findUpMedia('camera');
+        const restored = updated?.stream?.getAudioTracks().some(track =>
+            track.readyState === 'live' && !track.muted);
+        if(restored) {
+            cancelAudioRecovery();
+            setLocalMute(currentSettings.localMute, false);
+            return;
+        }
+
+        audioRecoveryState.attempts++;
+        if(!audioRecoveryState.warned) {
+            displayWarning('麦克风连接中断，正在自动尝试恢复。');
+            audioRecoveryState.warned = true;
+        }
+        // Continue with a capped 30-second backoff while the user still wants
+        // the microphone. Selecting "off" or leaving the room cancels retries.
+        scheduleAudioRecovery(false);
+    }, delay);
+}
+
 async function setUpStream(c, stream) {
     if(c.stream !== null)
         throw new Error("Setting nonempty stream");
@@ -1400,9 +1487,30 @@ async function setUpStream(c, stream) {
                 }
             }
         }
+        if(c.label === 'camera' && t.kind === 'audio') {
+            // Preserve the user's mute preference across capture recovery.
+            t.enabled = !settings.localMute;
+            t.onmute = () => {
+                if(getSettings().audio && !getSettings().localMute) {
+                    setLocalMute(true, false);
+                    scheduleAudioRecovery(true);
+                }
+            };
+            t.onunmute = () => {
+                if(!getSettings().localMute) {
+                    cancelAudioRecovery();
+                    setLocalMute(false, false);
+                }
+            };
+        }
         t.onended = () => {
-            // A mobile OS may suspend or revoke one capture track. Keep the
-            // other media kind alive instead of closing the whole camera stream.
+            // A capture track can end when mobile browsers suspend or revoke
+            // a device. Keep other live tracks and recover the mic separately.
+            if(c.label === 'camera' && t.kind === 'audio') {
+                setLocalMute(true, false);
+                if(getSettings().audio && !getSettings().localMute)
+                    scheduleAudioRecovery(false);
+            }
             const liveTracks = c.stream ? c.stream.getTracks().filter(track =>
                 track.readyState === 'live') : [];
             if(liveTracks.length === 0) {
@@ -1410,7 +1518,6 @@ async function setUpStream(c, stream) {
                 stream.onremovetrack = null;
                 c.close();
             } else {
-                setLocalMute(liveTracks.every(track => track.kind !== 'audio'), true);
                 updateCameraButton();
                 setButtonsVisibility();
             }
@@ -1572,6 +1679,8 @@ function replaceCameraStream() {
  * @param {string} [localId]
  */
 async function addLocalMedia(localId) {
+    const forceAudio = arguments[1] === true;
+    const silent = arguments[2] === true;
     const settings = getSettings();
     const choice = {
         audio: JSON.stringify([settings.audio, settings.preprocessing, settings.hqaudio]),
@@ -1625,7 +1734,8 @@ async function addLocalMedia(localId) {
             if(previous) previous.stop();
             continue;
         }
-        if(previous && old.userdata?.captureSelection?.[kind] === choice[kind]) {
+        if(previous && old.userdata?.captureSelection?.[kind] === choice[kind] &&
+           !(kind === 'audio' && forceAudio)) {
             tracks.push(previous);
             continue;
         }
@@ -1658,7 +1768,8 @@ async function addLocalMedia(localId) {
             tracks.push(track);
         } catch(e) {
             console.error(e);
-            displayError(e);
+            if(!silent)
+                displayError(e);
             // Keep the old source alive when a device switch fails. Cloning
             // lets the old PeerConnection close without killing the fallback.
             if(previous && previous.readyState === 'live')
@@ -1668,7 +1779,11 @@ async function addLocalMedia(localId) {
 
     if(!tracks.length) {
         if(old) old.close();
-        setLocalMute(true, true);
+        // Preserve the intended microphone state while capture is recovering.
+        if(settings.audio)
+            setLocalMute(true, false);
+        else
+            setLocalMute(true, true);
         updateCameraButton();
         setButtonsVisibility();
         return;
@@ -1696,8 +1811,16 @@ async function addLocalMedia(localId) {
         if(c) c.close();
         else stopStream(stream);
     }
-    if(!stream.getAudioTracks().length)
-        setLocalMute(true, true);
+    if(!stream.getAudioTracks().some(track => track.readyState === 'live')) {
+        if(settings.audio)
+            setLocalMute(true, false);
+        else
+            setLocalMute(true, true);
+    } else {
+        setLocalMute(settings.localMute, false);
+        if(!settings.localMute)
+            cancelAudioRecovery();
+    }
     updateCameraButton();
     setButtonsVisibility();
 }
@@ -4601,6 +4724,7 @@ async function start() {
     getInputElement('username').required = true;
     getInputElement('password').required = true;
     getInputElement('username').focus();
+    getInputElement('connectbutton').disabled = false;
     setViewportHeight();
 }
 

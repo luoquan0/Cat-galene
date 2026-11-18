@@ -268,3 +268,40 @@ body.cm-v2-room.cm-prejoin .cm-empty-stage{display:none}
   body.cm-v2-room .cm-lobby-intro h2{font-size:24px}
 }
 @media (prefers-reduced-motion:reduce){.cm-v2-home *, .cm-v2-room *{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Readable native option lists and participant context menus on the dark theme. */
+body.cm-v2-room select option,
+body.cm-v2-room select optgroup {
+    background-color: #f8faff !important;
+    color: #202944 !important;
+}
+body.cm-v2-room .contextualMenu,
+body.cm-v2-room .contextualSubMenu,
+body.cm-v2-room .contextualHoverMenu {
+    color: #202944 !important;
+    background: #ffffff !important;
+    border: 1px solid #dce2ee;
+    border-radius: 12px;
+    box-shadow: 0 14px 38px #05091470;
+    z-index: 2000;
+}
+body.cm-v2-room .contextualMenuItem,
+body.cm-v2-room .contextualMenuItemTitle,
+body.cm-v2-room .contextualMenuItemTip,
+body.cm-v2-room .contextualHoverMenuItem {
+    color: #202944 !important;
+}
+body.cm-v2-room .contextualMenuItem:hover,
+body.cm-v2-room .contextualHoverMenuItem:hover,
+body.cm-v2-room .contextualSubMenu .contextualMenuItem:hover {
+    color: #40318e !important;
+    background: #efedff !important;
+}
+body.cm-v2-room .contextualMenuItem.disabled,
+body.cm-v2-room .contextualHoverMenuItem.disabled {
+    color: #8993a7 !important;
+}
+body.cm-v2-room .contextualMenuItemOverflowLine {
+    background: #7f8aa0 !important;
+}
