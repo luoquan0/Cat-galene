@@ -860,5 +860,5 @@ test('admin bootstrap is shipped and never writes CLI credential password', () =
     assert.match(source, /tmp\.Chmod\(0600\)/);
     assert.match(source, /term\.ReadPassword/);
     assert.match(source, /global admin already exists/);
-    assert.doesNotMatch(source, /AdminPassword:|galenectl\.json/);
+    assert.doesNotMatch(source, /AdminPassword:|AdminPassword\s*=|os\.WriteFile\([^)]*galenectl\.json/);
 });

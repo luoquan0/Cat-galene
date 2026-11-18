@@ -53,6 +53,9 @@ func TestAdminSessionRequiresGlobalAdmin(t *testing.T) {
 
 
 func TestAdminHTMLSecurityHeaders(t *testing.T) {
+ oldData := group.DataDirectory
+ group.DataDirectory = t.TempDir()
+ defer func(){group.DataDirectory=oldData}()
  dir:=t.TempDir()
  if err:=os.WriteFile(filepath.Join(dir,"admin.html"), []byte("<!doctype html><title>Admin</title>"),0600);err!=nil{t.Fatal(err)}
  root,err:=os.OpenRoot(dir);if err!=nil{t.Fatal(err)}
