@@ -8,6 +8,9 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
+
+	"github.com/jech/galene/token"
 )
 
 func TestMarshalUserDescription(t *testing.T) {
@@ -344,5 +347,57 @@ func TestRememberBindingInvalidatedOnPasswordChange(t *testing.T) {
 	}
 	if _, ok := desc.rememberBinding("alice", "different-token"); !ok {
 		t.Fatalf("current account should still permit a new session")
+	}
+}
+
+func TestRememberedLoginRechecksCurrentAccount(t *testing.T) {
+	token.SetStatefulFilename(filepath.Join(t.TempDir(), "tokens.jsonl"))
+	defer token.SetStatefulFilename("")
+
+	pass := "old-password"
+	username := "alice"
+	perms, err := NewPermissions("present")
+	if err != nil {
+		t.Fatal(err)
+	}
+	desc := &Description{Users: map[string]UserDescription{
+		username: {Password: Password{Type: "plain", Key: &pass},
+			Permissions: perms},
+	}}
+	value := "random-remembered-login-token"
+	binding, ok := desc.rememberBinding(username, value)
+	if !ok {
+		t.Fatal("could not bind session to account")
+	}
+	expiry := time.Now().Add(7 * 24 * time.Hour)
+	_, err = token.Update(&token.Stateful{
+		Token: value, Group: "room", Username: &username,
+		Permissions: []string{"op", "record"}, Binding: binding,
+		Expires: &expiry,
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name, actual, err := desc.GetPermission("room",
+		ClientCredentials{Token: value})
+	if err != nil || name != username {
+		t.Fatalf("remembered session rejected: %v", err)
+	}
+	for _, p := range actual {
+		if p == "op" || p == "record" {
+			t.Fatalf("session granted stale or elevated permission %q", p)
+		}
+	}
+
+	pass = "reset-password"
+	if _, _, err := desc.GetPermission("room",
+		ClientCredentials{Token: value}); err == nil {
+		t.Fatal("changing password must invalidate remembered session")
+	}
+	delete(desc.Users, username)
+	if _, _, err := desc.GetPermission("room",
+		ClientCredentials{Token: value}); err == nil {
+		t.Fatal("deleting account must invalidate remembered session")
 	}
 }
