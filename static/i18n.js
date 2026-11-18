@@ -2,6 +2,9 @@
 'use strict';
 (() => {
     const chinese = {
+    "No subgroups.": "暂无子会议室。",
+    ": empty": "：空会议室",
+    ": 1 client": "：1 人",
     "Unraise hand": "放下手",
     "Invite user": "邀请用户",
     "Broadcast file": "播放文件",
@@ -265,6 +268,7 @@
         [/^Delete all from (.+)$/, m => '删除来自 ' + m[1] + ' 的所有消息'],
         [/^Identify (.+)$/, m => '查看 ' + m[1] + ' 的身份'],
         [/^Kick out (.+)$/, m => '移出 ' + m[1]],
+        [/^: (\d+) clients$/, m => "：" + m[1] + " 人"],
         [/^Camera (\d+)$/, m => '摄像头 ' + m[1]],
         [/^Microphone (\d+)$/, m => '麦克风 ' + m[1]],
         [/^\((\d+) clients?(, locked)?\)$/, m =>

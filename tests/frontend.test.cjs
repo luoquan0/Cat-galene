@@ -599,20 +599,20 @@ test('WebRTC stats capture actual outgoing encoding metrics and UI remains trans
 });
 
 
-test('Cat-Meet rebranding covers primary user interfaces and release artifacts', () => {
+test('Cat-Meet branding and Linux-only browser-first releases', () => {
     const home = fs.readFileSync('static/index.html', 'utf8');
     const meeting = fs.readFileSync('static/galene.html', 'utf8');
     const statistics = fs.readFileSync('static/stats.html', 'utf8');
-    const windows = fs.readFileSync('client/windows/main_windows.go', 'utf8');
     const release = fs.readFileSync('.github/workflows/release.yml', 'utf8');
+    const readme = fs.readFileSync('README.md', 'utf8');
     for(const page of [home, meeting])
         assert.match(page, /<title>Cat-Meet<\/title>/);
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
-    assert.match(windows, /Cat-Meet · Windows 会议客户端/);
-    assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_windows_client/);
-    assert.match(release, /Cat-Meet-Client\.exe/);
+    assert.match(release, /Cat-Meet_\$\{GITHUB_REF_NAME\}_linux_server/);
     assert.match(release, /"\$\{root\}\/cat-meet"/);
     assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
+    assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\.exe/);
+    assert.match(readme, /No Windows desktop client or installer is required/);
 });
 
 test('old meeting and language preferences migrate to Cat-Meet storage', () => {
@@ -719,4 +719,39 @@ test('screen sharing zoom and dragging are local and bounded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     assert.ok(html.indexOf('/share-zoom.js') < html.indexOf('/galene.js'));
     assert.match(galene, /if\(c\.label === 'screenshare'\)\s+enableScreenShareZoom/);
+});
+
+test('Firefox camera test refreshes device choices after obtaining preview permission', () => {
+    const handler = galene.match(/document.getElementById\('test-camera'\).ontoggle = async function\(e\) \{[\s\S]*?\n\};?/);
+    assert.ok(handler, 'camera test toggle handler missing');
+    assert.match(handler[0], /await cameraTest\.setStream\(true\);\s*await cameraTest\.setMediaChoices\(\);\s*cameraTest\.reflectSettings\(\)/);
+});
+
+test('Galène 1.2.2 subgroup UI and participant activity labels are merged', () => {
+    assert.match(galene, /case 'subgrouplist':/);
+    assert.match(galene, /commands\.msgsubgroup =/);
+    assert.match(galene, /user-status-active/);
+    assert.match(galene, /function setUpLabel\(/);
+});
+
+test('Firefox hides device IDs before permission: camera test uses default IDs safely', async () => {
+    let requested = 0;
+    const sandbox = {
+        navigator: {mediaDevices: {
+            enumerateDevices: async () => [
+                {kind: 'videoinput', label: '', deviceId: ''},
+                {kind: 'audioinput', label: '', deviceId: ''},
+            ],
+            getUserMedia: async () => {requested++; throw Error('unwanted request');},
+        }},
+        addSelectOption: (select, label, value) => select.options.push({label, value}),
+    };
+    vm.runInNewContext(cameraTestSource, sandbox);
+    const videoChoices = {options: []}, audioChoices = {options: []};
+    const camera = new sandbox.CameraTest(
+        {srcObject: null}, {width: 200, height: 40}, videoChoices, audioChoices);
+    await camera.setMediaChoices();
+    assert.equal(requested, 0);
+    assert.equal(videoChoices.options[0].value, 'default');
+    assert.equal(audioChoices.options[0].value, 'default');
 });

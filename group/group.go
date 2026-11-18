@@ -547,8 +547,8 @@ func GetNames() []string {
 }
 
 type SubGroup struct {
-	Name    string
-	Clients int
+	Name        string `json:"name"`
+	ClientCount int    `json:"clientCount,omitempty"`
 }
 
 func GetSubGroups(parent string) []SubGroup {
@@ -560,10 +560,7 @@ func GetSubGroups(parent string) []SubGroup {
 			g.mu.Lock()
 			count := len(g.clients)
 			g.mu.Unlock()
-			if count > 0 {
-				subgroups = append(subgroups,
-					SubGroup{g.name, count})
-			}
+			subgroups = append(subgroups, SubGroup{g.name, count})
 		}
 		return true
 	})

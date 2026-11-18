@@ -3,19 +3,18 @@
 Cat-Meet is a self-hosted video meeting system based on the open-source
 [Galène](https://galene.org/) WebRTC server. It includes Chinese/English
 meeting pages, independent microphone and camera controls, configurable
-high-resolution screen sharing, and a Windows meeting client.
+high-resolution screen sharing, with meeting participants joining directly from their web browsers.
 
 ## Downloads
 
-Get the latest **Cat-Meet Linux server** or **Cat-Meet Windows client**
-from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).
+Get the **Cat-Meet Linux server** from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).
 
 - **Linux**: the `cat-meet` video meeting server and `cat-meetctl`
   administrative tool. Compatibility commands `galene` and `galenectl`
   are included for existing installations.
-- **Windows**: `Cat-Meet-Client.exe`, a small standalone launcher that
-  opens a remote meeting URL using Microsoft Edge or Google Chrome.
-  Windows is a **client**, not an additional server.
+- **Participants**: open the meeting HTTPS link directly in a modern browser
+  (Chrome, Edge, Firefox or Safari) on Windows, macOS, Linux or mobile.
+  No Windows desktop client or installer is required.
 
 The Linux server hosts the actual WebRTC conference pages. When upgrading,
 update the Linux server package and refresh the browser UI.
@@ -52,11 +51,10 @@ not change the shared stream's resolution or the bandwidth used.
 - [Writing a client](galene-client.md)
 - [Compatible signaling protocol](galene-protocol.md)
 - [Administrative API](galene-api.md)
-- [Windows meeting client](client/windows/README.md)
 
 ## Upstream acknowledgements and compatibility
 
-Cat-Meet is built on Galène by **Juliusz Chroboczek**. The original source
+Cat-Meet integrates upstream Galène **1.2.2**, by **Juliusz Chroboczek**. The original source
 and protocol documentation are at <https://galene.org/>.
 
 We preserve the upstream Go module import path
