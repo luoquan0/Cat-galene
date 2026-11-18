@@ -45,6 +45,16 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.3
+
+The homepage is reduced to a single meeting-room input and join action. Joining
+always shows the room account/password form; invitation tokens no longer skip
+that form. Camera capture refreshes device lists on device changes, retries stale
+mobile device IDs with browser defaults, and keeps an existing working camera
+stream when a replacement request fails. If one track ends, the other live media
+track is kept running. These browser/device behaviours still need validation on
+the target Android/iOS devices and webcams.
+
 ## Downloads
 
 Get the **Cat-Meet Linux server** from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).

@@ -102,8 +102,6 @@ CameraTest.prototype.setStream = async function(force) {
     if(!force && !old)
         return;
 
-    this.video.srcObject = null; // in case getUserMedia throws
-
     let settings = getSettings();
     /** @type{boolean|MediaTrackConstraints} */
     let a = settings.audio ?
@@ -125,15 +123,40 @@ CameraTest.prototype.setStream = async function(force) {
     }
 
     let constraints = {audio: a, video: v};
+    let replacement = null;
     try {
         if(a || v) {
-            let stream = await navigator.mediaDevices.getUserMedia(constraints);
-            this.video.srcObject = stream;
+            try {
+                replacement = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch(error) {
+                // Mobile devices and stale device IDs often reject ideal
+                // constraints; retry with the browser's default camera/mic.
+                if(error.name !== 'OverconstrainedError' &&
+                   error.name !== 'NotFoundError' &&
+                   error.name !== 'DevicesNotFoundError')
+                    throw error;
+                replacement = await navigator.mediaDevices.getUserMedia({
+                    audio: a ? true : false,
+                    video: v ? true : false,
+                });
+            }
+            this.video.srcObject = replacement;
             await this.video.play();
+            if(old)
+                stopStream(old);
+        } else {
+            this.video.srcObject = null;
+            if(old)
+                stopStream(old);
         }
-    } finally {
-        if(old)
-            stopStream(old);
+    } catch(error) {
+        if(replacement)
+            stopStream(replacement);
+        this.video.srcObject = old || null;
+        if(old && old.getTracks().some(track => track.readyState === 'live')) {
+            try { await this.video.play(); } catch(_) {}
+        }
+        throw error;
     }
 }
 

@@ -756,16 +756,16 @@ test('Firefox hides device IDs before permission: camera test uses default IDs s
     assert.equal(audioChoices.options[0].value, 'default');
 });
 
-test('Cat-Meet v2 workspace preserves real group lookup and language controls', () => {
+test('Cat-Meet compact homepage contains one meeting-name join flow', () => {
     const home = fs.readFileSync('static/index.html', 'utf8');
     const js = fs.readFileSync('static/mainpage.js', 'utf8');
-    for(const id of ['groupform', 'group', 'submitbutton', 'public-groups',
-                      'public-groups-table', 'language-select'])
+    for(const id of ['groupform', 'group', 'submitbutton', 'language-select'])
         assert.match(home, new RegExp('id="' + id + '"'));
-    assert.match(home, /cat-meet-v2\.css\?v=1\.2\.2-cat\.1/);
+    assert.match(home, /cm-home-compact/);
+    assert.match(home, /cat-meet-home-compact\.css/);
     assert.match(js, /fetch\(statusUrl/);
-    assert.match(js, /listPublicGroups\(\)/);
-    assert.doesNotMatch(home, /id="joinDemoBtn"|id="fakeBars"/);
+    assert.match(js, /location\.assign\(url\)/);
+    assert.doesNotMatch(home, /cm-home-sidebar|cm-home-hero|public-groups-table|admin\.html/);
 });
 
 test('Cat-Meet v2 live meeting keeps Galene IDs and real media settings', () => {
@@ -870,4 +870,40 @@ test('admin credentials require HTTPS except a loopback test host', () => {
     assert.match(source, /localhost/);
     assert.match(source, /127\.0\.0\.1/);
     assert.match(source, /redirect: 'error'/);
+});
+
+
+test('compact homepage contains only the meeting name join flow', () => {
+    const page = fs.readFileSync('static/index.html', 'utf8');
+    assert.match(page, /cm-home-compact/);
+    assert.match(page, /id="groupform"/);
+    assert.match(page, /id="group"/);
+    assert.doesNotMatch(page, /cm-home-sidebar|cm-home-hero|public-groups-table|admin\.html/);
+    assert.match(page, /cat-meet-home-compact\.css/);
+});
+
+test('room page always displays account and password login and strips invitation token', () => {
+    const source = fs.readFileSync('static/galene.js', 'utf8');
+    assert.match(source, /getInputElement\('username'\)\.required = true/);
+    assert.match(source, /getInputElement\('password'\)\.required = true/);
+    assert.match(source, /parms\.delete\('token'\)/);
+    assert.doesNotMatch(source, /if\(token\) \{\s*await serverConnect\(\)/);
+    assert.match(source, /document\.location\.assign\(message\)/);
+    assert.match(source, /message\.startsWith\('\/'\)/);
+});
+
+test('camera track ending does not close other live media tracks', () => {
+    const source = fs.readFileSync('static/galene.js', 'utf8');
+    assert.match(source, /A mobile OS may suspend or revoke one capture track/);
+    assert.match(source, /liveTracks\.length === 0/);
+    assert.match(source, /navigator\.mediaDevices\.addEventListener\('devicechange'/);
+    assert.match(source, /Retry stale mobile device IDs/);
+    assert.match(source, /previous\.clone\(\)/);
+});
+
+test('camera preview restores previous stream when device switching fails', () => {
+    const source = cameraTestSource;
+    assert.match(source, /this\.video\.srcObject = old \|\| null/);
+    assert.match(source, /this\.video\.play\(\)/);
+    assert.match(source, /DevicesNotFoundError/);
 });

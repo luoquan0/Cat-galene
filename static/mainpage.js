@@ -61,7 +61,7 @@ document.getElementById('groupform').onsubmit = async function(e) {
         button.disabled = false;
     }
 
-    location.href = url;
+    location.assign(url);
 };
 
 var clearErrorTimeout = null;
