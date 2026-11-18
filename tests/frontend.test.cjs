@@ -608,7 +608,7 @@ test('Cat-Meet branding and Linux-only browser-first releases', () => {
     for(const page of [home, meeting])
         assert.match(page, /<title>Cat-Meet<\/title>/);
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
-    assert.match(release, /Cat-Meet_\$\{GITHUB_REF_NAME\}_linux_server/);
+    assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_linux_server/);
     assert.match(release, /"\$\{root\}\/cat-meet"/);
     assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
     assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\.exe/);
@@ -811,6 +811,6 @@ test('Cat-Meet v2 keeps every share-quality and viewing zoom control', () => {
     assert.match(html, /option value="120"/);
     assert.match(html, /option value="50"/);
     assert.match(html, /id="screen-share-stats"/);
-    assert.match(zoom, /400/);
-    assert.match(zoom, /50/);
+    assert.match(zoom, /state\.scale >= 4/);
+    assert.match(zoom, /state\.scale <= 0\.5/);
 });
