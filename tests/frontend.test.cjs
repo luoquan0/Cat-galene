@@ -608,10 +608,10 @@ test('Cat-Meet branding and Linux-only browser-first releases', () => {
     for(const page of [home, meeting])
         assert.match(page, /<title>Cat-Meet<\/title>/);
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
-    assert.match(release, /Cat-Meet_\\$\\{GITHUB_REF_NAME\\}_linux_server/);
-    assert.match(release, /"\\$\\{root\\}\/cat-meet"/);
-    assert.match(release, /ln -s cat-meet "\\$\\{root\\}\/galene"/);
-    assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\\.exe/);
+    assert.match(release, /Cat-Meet_\$\{GITHUB_REF_NAME\}_linux_server/);
+    assert.match(release, /"\$\{root\}\/cat-meet"/);
+    assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
+    assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\.exe/);
     assert.match(readme, /No Windows desktop client or installer is required/);
 });
 
