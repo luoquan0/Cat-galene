@@ -559,6 +559,10 @@ func passwordHandler(w http.ResponseWriter, r *http.Request, g, user string, wil
 		if done {
 			return
 		}
+        if len(body) > 72 {
+            http.Error(w, "bcrypt password must not exceed 72 bytes", http.StatusBadRequest)
+            return
+        }
 		key, err := bcrypt.GenerateFromPassword(body, 12)
 		if err != nil {
 			httpError(w, err)

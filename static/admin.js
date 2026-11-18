@@ -444,6 +444,13 @@
             $('login-error').textContent = '管理员用户名格式不正确。';
             return;
         }
+        // The reverse proxy must expose HTTPS. Localhost is the only
+        // exception for local testing; never transmit credentials over HTTP.
+        const localHost = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+        if(location.protocol !== 'https:' && !localHost) {
+            $('login-error').textContent = '管理员登录要求 HTTPS 安全连接。';
+            return;
+        }
         state.authorization = credentialValue(username, password);
         try {
             const reply = await api('/galene-api/v0/.admin-session');

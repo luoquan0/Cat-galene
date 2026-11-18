@@ -862,3 +862,12 @@ test('admin bootstrap is shipped and never writes CLI credential password', () =
     assert.match(source, /global admin already exists/);
     assert.doesNotMatch(source, /AdminPassword:|AdminPassword\s*=|os\.WriteFile\([^)]*galenectl\.json/);
 });
+
+
+test('admin credentials require HTTPS except a loopback test host', () => {
+    const source = fs.readFileSync('static/admin.js', 'utf8');
+    assert.match(source, /location\.protocol !== 'https:'/);
+    assert.match(source, /localhost/);
+    assert.match(source, /127\.0\.0\.1/);
+    assert.match(source, /redirect: 'error'/);
+});
