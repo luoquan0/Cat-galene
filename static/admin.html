@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#111728">
+  <title>Cat-Meet · 管理中心</title>
+  <link rel="stylesheet" href="/admin.css?v=1.2.2-cat.2">
+  <script src="/admin.js?v=1.2.2-cat.2" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="logo">✦</span><span>Cat-Meet <small>管理中心</small></span></a>
+    <div class="top-actions"><a href="/">返回会议首页</a><span id="admin-identity" class="identity" hidden></span><button id="logout" type="button" hidden>退出管理</button></div>
+  </header>
+  <main>
+    <section id="login-panel" class="login-panel" aria-labelledby="login-title">
+      <div class="login-intro">
+        <span class="eyebrow">SECURE ADMINISTRATION</span>
+        <h1 id="login-title">掌控协作空间，<br>管理更安心。</h1>
+        <p>使用部署时创建的服务器管理员账号登录。所有关键操作均由服务端再次校验权限。</p>
+        <div class="secure-list"><span>● 密码哈希存储</span><span>● HTTPS 管理请求</span><span>● 操作二次确认</span></div>
+      </div>
+      <form id="login-form" class="login-card">
+        <div class="card-kicker">SERVER ADMIN</div>
+        <h2>管理员登录</h2>
+        <p class="muted">首次部署可运行 <code>./cat-meetctl bootstrap-admin -user admin</code> 创建管理员。</p>
+        <label for="login-username">管理员账号</label>
+        <input id="login-username" autocomplete="username" maxlength="64" required placeholder="例如：admin" spellcheck="false">
+        <label for="login-password">管理员密码</label>
+        <input id="login-password" type="password" autocomplete="current-password" required placeholder="输入部署时设置的密码">
+        <button class="primary wide" type="submit">安全登录 <span aria-hidden="true">↗</span></button>
+        <p id="login-error" class="form-message" role="alert" aria-live="polite"></p>
+        <p class="login-note">密码仅在当前页面内存中使用，不保存到 localStorage、cookie 或链接。</p>
+      </form>
+    </section>
+
+    <section id="dashboard" class="dashboard" aria-labelledby="dashboard-title" hidden>
+      <div class="dashboard-head">
+        <div><span class="eyebrow">CONTROL CENTER / 01</span><h1 id="dashboard-title">管理控制台</h1><p>直接管理 Cat-Meet 服务器上的会议室与成员权限。</p></div>
+        <span id="server-status" class="status">检查服务器状态中…</span>
+      </div>
+      <p id="readonly-notice" class="notice" hidden>当前服务器未启用 writableGroups，管理员只能查看。请先在服务器 data/config.json 中设置 "writableGroups": true，或使用初始化命令。</p>
+      <p id="action-message" class="notification" role="status" aria-live="polite"></p>
+      <div class="stats">
+        <div class="stat"><span class="stat-icon">◫</span><small>会议室总数</small><strong id="stat-rooms">—</strong></div>
+        <div class="stat"><span class="stat-icon">◎</span><small>已选会议室</small><strong id="stat-selected">未选择</strong></div>
+        <div class="stat"><span class="stat-icon">◆</span><small>管理权限</small><strong>服务器管理员</strong></div>
+      </div>
+      <div class="workspace">
+        <nav class="workspace-nav" aria-label="管理员功能">
+          <span class="eyebrow">MANAGEMENT</span>
+          <button class="nav-entry active" type="button" id="nav-rooms" aria-current="page">◫ <span>会议室管理</span></button>
+          <button class="nav-entry" type="button" id="nav-users">◎ <span>成员与权限</span></button>
+          <div class="sidebar-explain">所有新建成员属于某个会议室，不是全站通用账号。服务器管理员账号单独存放在 data/config.json。</div>
+        </nav>
+        <div class="content">
+          <section id="rooms-view" aria-labelledby="rooms-heading">
+            <div class="section-title"><div><span class="eyebrow">ROOMS</span><h2 id="rooms-heading">会议室管理</h2><p>创建、编辑会议空间及其基础访问设置。</p></div><button type="button" id="refresh-groups" class="secondary">刷新列表</button></div>
+            <div class="columns">
+              <div class="panel list-panel"><div class="panel-heading"><h3>现有会议室</h3><small>点击查看与编辑</small></div><div id="group-list" class="item-list" aria-label="会议室列表"></div></div>
+              <div class="panel editor-panel">
+                <div class="panel-heading"><h3>创建新会议室</h3><small>创建后即可分配成员</small></div>
+                <form id="create-group-form" class="form-grid">
+                  <label for="new-group-name">会议室标识 <small>英文、数字、_ 或 -，可使用 / 分层</small></label>
+                  <input id="new-group-name" maxlength="128" required placeholder="例如：team-weekly" spellcheck="false">
+                  <label for="new-group-title">会议室名称</label>
+                  <input id="new-group-title" maxlength="100" placeholder="例如：研发周会">
+                  <label for="new-group-description">简介</label>
+                  <textarea id="new-group-description" maxlength="500" rows="2" placeholder="可选"></textarea>
+                  <label for="new-group-max">最多参与人数 <small>留空表示使用服务端默认值</small></label>
+                  <input id="new-group-max" type="number" min="1" max="10000" step="1" placeholder="例如：50">
+                  <div class="checks"><label><input id="new-group-public" type="checkbox">公开显示</label><label><input id="new-group-recording" type="checkbox">允许录制</label></div>
+                  <button class="primary" type="submit">创建会议室 <span aria-hidden="true">＋</span></button>
+                </form>
+              </div>
+            </div>
+            <div class="panel edit-panel" id="edit-group-panel" hidden>
+              <div class="panel-heading"><h3>编辑会议室 <span id="edit-group-label" class="subtle"></span></h3><a id="open-group-link" href="/" target="_blank" rel="noopener noreferrer">在新窗口查看会议室 ↗</a></div>
+              <form id="edit-group-form" class="form-grid edit-grid">
+                <label for="edit-group-title">会议室名称</label><input id="edit-group-title" maxlength="100">
+                <label for="edit-group-description">简介</label><textarea id="edit-group-description" maxlength="500" rows="2"></textarea>
+                <label for="edit-group-max">人数限制</label><input id="edit-group-max" type="number" min="1" max="10000" step="1">
+                <div class="checks"><label><input id="edit-group-public" type="checkbox">公开显示</label><label><input id="edit-group-recording" type="checkbox">允许录制</label></div>
+                <div class="form-actions"><button type="submit" class="primary">保存会议室设置</button><button id="delete-group" type="button" class="danger">删除会议室</button></div>
+              </form>
+            </div>
+          </section>
+          <section id="users-view" aria-labelledby="users-heading" hidden>
+            <div class="section-title"><div><span class="eyebrow">MEMBERS</span><h2 id="users-heading">成员与权限</h2><p>管理选定会议室的成员身份与登录密码。</p></div></div>
+            <div class="panel choose-room"><label for="users-group">当前会议室</label><select id="users-group" aria-label="选择要管理的会议室"><option value="">请选择会议室</option></select></div>
+            <div class="columns">
+              <div class="panel list-panel"><div class="panel-heading"><h3>会议室成员</h3><small>选择账号管理</small></div><div id="user-list" class="item-list" aria-label="用户列表"></div></div>
+              <div class="panel editor-panel">
+                <div class="panel-heading"><h3>创建新成员</h3><small>密码必须为 12–72 字节</small></div>
+                <form id="create-user-form" class="form-grid">
+                  <label for="new-user-name">用户名</label><input id="new-user-name" maxlength="64" required autocomplete="off" spellcheck="false" placeholder="例如：zhang">
+                  <label for="new-user-password">登录密码</label><input id="new-user-password" type="password" minlength="12" required autocomplete="new-password" placeholder="至少 12 字节">
+                  <label for="new-user-role">成员身份</label>
+                  <select id="new-user-role">
+                    <option value="present">普通成员 · 音视频与聊天</option>
+                    <option value="op">会议主持人 · 管理成员</option>
+                    <option value="message">聊天成员 · 仅发送消息</option>
+                    <option value="observe">观察者 · 只接收</option>
+                    <option value="admin">会议室管理员 · 仅管理配置</option>
+                  </select>
+                  <button class="primary" type="submit">创建成员账号 ＋</button>
+                </form>
+              </div>
+            </div>
+            <div id="edit-user-panel" class="panel edit-panel" hidden>
+              <div class="panel-heading"><h3>成员设置 <span id="edit-user-label" class="subtle"></span></h3></div>
+              <div class="edit-user-grid">
+                <form id="edit-user-form" class="form-grid">
+                  <label for="edit-user-role">身份与权限</label>
+                  <select id="edit-user-role">
+                    <option value="present">普通成员 · 音视频与聊天</option>
+                    <option value="op">会议主持人 · 管理成员</option>
+                    <option value="message">聊天成员 · 仅发送消息</option>
+                    <option value="observe">观察者 · 只接收</option>
+                    <option value="admin">会议室管理员 · 仅管理配置</option>
+                  </select>
+                  <button class="primary" type="submit">保存身份权限</button>
+                </form>
+                <form id="reset-password-form" class="form-grid">
+                  <label for="reset-user-password">重置成员登录密码</label><input id="reset-user-password" type="password" minlength="12" autocomplete="new-password" required placeholder="新密码至少 12 字节">
+                  <button type="submit" class="secondary">重置密码</button>
+                </form>
+              </div>
+              <button id="delete-user" type="button" class="danger">删除当前成员</button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <footer class="dashboard-footer">Cat-Meet · 安全管理后台 · 不在浏览器持久化管理员密码</footer>
+    </section>
+  </main>
+</body>
+</html>
