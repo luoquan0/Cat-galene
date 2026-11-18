@@ -599,20 +599,20 @@ test('WebRTC stats capture actual outgoing encoding metrics and UI remains trans
 });
 
 
-test('Cat-Meet rebranding covers primary user interfaces and release artifacts', () => {
+test('Cat-Meet branding and Linux-only browser-first releases', () => {
     const home = fs.readFileSync('static/index.html', 'utf8');
     const meeting = fs.readFileSync('static/galene.html', 'utf8');
     const statistics = fs.readFileSync('static/stats.html', 'utf8');
-    const windows = fs.readFileSync('client/windows/main_windows.go', 'utf8');
     const release = fs.readFileSync('.github/workflows/release.yml', 'utf8');
+    const readme = fs.readFileSync('README.md', 'utf8');
     for(const page of [home, meeting])
         assert.match(page, /<title>Cat-Meet<\/title>/);
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
-    assert.match(windows, /Cat-Meet · Windows 会议客户端/);
-    assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_windows_client/);
-    assert.match(release, /Cat-Meet-Client\.exe/);
-    assert.match(release, /"\$\{root\}\/cat-meet"/);
-    assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
+    assert.match(release, /Cat-Meet_\\$\\{GITHUB_REF_NAME\\}_linux_server/);
+    assert.match(release, /"\\$\\{root\\}\/cat-meet"/);
+    assert.match(release, /ln -s cat-meet "\\$\\{root\\}\/galene"/);
+    assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\\.exe/);
+    assert.match(readme, /No Windows desktop client or installer is required/);
 });
 
 test('old meeting and language preferences migrate to Cat-Meet storage', () => {
