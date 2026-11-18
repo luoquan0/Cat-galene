@@ -762,9 +762,9 @@ test('Cat-Meet v2 workspace preserves real group lookup and language controls', 
     for(const id of ['groupform', 'group', 'submitbutton', 'public-groups',
                       'public-groups-table', 'language-select'])
         assert.match(home, new RegExp('id="' + id + '"'));
-    assert.match(home, /cat-meet-v2\\.css\\?v=1\\.2\\.2-cat\\.1/);
-    assert.match(js, /fetch\\(statusUrl/);
-    assert.match(js, /listPublicGroups\\(\\)/);
+    assert.match(home, /cat-meet-v2\.css\?v=1\.2\.2-cat\.1/);
+    assert.match(js, /fetch\(statusUrl/);
+    assert.match(js, /listPublicGroups\(\)/);
     assert.doesNotMatch(home, /id="joinDemoBtn"|id="fakeBars"/);
 });
 
@@ -777,15 +777,15 @@ test('Cat-Meet v2 live meeting keeps Galene IDs and real media settings', () => 
                       'sharebutton', 'cm-tab-users', 'cm-tab-chat', 'cm-leave-button',
                       'screenresselect', 'screenfpsselect', 'screenbitrateselect'])
         assert.match(html, new RegExp('id="' + id + '"'));
-    assert.match(html, /cat-meet-v2\\.js\\?v=1\\.2\\.2-cat\\.1/);
+    assert.match(html, /cat-meet-v2\.js\?v=1\.2\.2-cat\.1/);
     assert.match(css, /cm-v2-room/);
     assert.match(css, /cm-v2-home/);
-    assert.match(bridge, /MutationObserver\\(reflectLobby\\)/);
+    assert.match(bridge, /MutationObserver\(reflectLobby\)/);
     assert.doesNotMatch(bridge, /getUserMedia|getDisplayMedia|new ServerConnection/);
 });
 
 test('camera-only lobby intent never enables or requests the microphone', () => {
-    const source = galene.match(/function configureJoinDevices\\(present\\) \\{[\\s\\S]*?\\n\\}\\n/);
+    const source = galene.match(/function configureJoinDevices\(present\) \{[\s\S]*?\n\}\n/);
     assert.ok(source);
     const settings = {audio:'default', video:'', localMute:false};
     const sandbox = {
@@ -794,7 +794,7 @@ test('camera-only lobby intent never enables or requests the microphone', () => 
         reflectSettings: () => {},
         updateCameraButton: () => {},
     };
-    vm.runInNewContext(source[0] + '\\nthis.configure = configureJoinDevices;', sandbox);
+    vm.runInNewContext(source[0] + '\nthis.configure = configureJoinDevices;', sandbox);
     sandbox.configure('camera');
     assert.equal(settings.audio, '');
     assert.equal(settings.video, 'default');
