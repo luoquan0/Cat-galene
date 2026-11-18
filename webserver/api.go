@@ -559,7 +559,7 @@ func passwordHandler(w http.ResponseWriter, r *http.Request, g, user string, wil
 		if done {
 			return
 		}
-		key, err := bcrypt.GenerateFromPassword(body, 8)
+		key, err := bcrypt.GenerateFromPassword(body, 12)
 		if err != nil {
 			httpError(w, err)
 			return

@@ -27,9 +27,15 @@ document.getElementById('groupform').onsubmit = async function(e) {
     let button = document.getElementById('submitbutton');
 
     let group = groupinput.value.trim();
-    if(group === '')
+    // Accept room identifiers, not full URLs, protocol schemes or path escapes.
+    const valid = group.length <= 128 &&
+        /^[\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*$/u.test(group) &&
+        group.split('/').every(segment => segment.length <= 64);
+    if(!valid) {
+        displayError('Invalid room name');
         return;
-    let url = '/group/' + group + '/';
+    }
+    let url = '/group/' + group.split('/').map(encodeURIComponent).join('/') + '/';
     let statusUrl = url + '.status.json';
 
     try {

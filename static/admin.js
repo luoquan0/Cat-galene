@@ -87,7 +87,7 @@
     async function api(path, {method = 'GET', data, password, etag, create = false} = {}) {
         // Relative, structured paths only: never fetch a URL from server data.
         if(!path.startsWith('/galene-api/v0/') || path.includes('://') ||
-           path.includes('\\') || path.includes('..') || path.includes('?') ||
+           path.includes('\') || /(^|\/)\.\.?($|\/)/.test(path) || path.includes('?') ||
            path.includes('#'))
             throw new Error('禁止访问不合法的管理 API 路径。');
         const headers = new Headers({Authorization: state.authorization, Accept: 'application/json'});
