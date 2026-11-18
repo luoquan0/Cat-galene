@@ -940,7 +940,7 @@ test('manual microphone mute or explicit audio-off never starts recovery', () =>
 
 test('dark meeting menus and option lists use high contrast colors', () => {
     const theme = fs.readFileSync('static/cat-meet-v2.css', 'utf8');
-    assert.match(theme, /\\.contextualMenuItemTitle,[\\s\\S]*?color: #202944 !important/);
-    assert.match(theme, /select option,[\\s\\S]*?color: #202944 !important/);
+    assert.match(theme, /\.contextualMenuItemTitle,[\s\S]*?color: #202944 !important/);
+    assert.match(theme, /select option,[\s\S]*?color: #202944 !important/);
     assert.match(theme, /background: #efedff !important/);
 });
