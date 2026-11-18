@@ -50,3 +50,21 @@ func TestAdminSessionRequiresGlobalAdmin(t *testing.T) {
  apiHandler(w,req)
  if w.Code!=http.StatusForbidden {t.Fatalf("cross-site admin request was accepted: %v",w.Code)}
 }
+
+
+func TestAdminHTMLSecurityHeaders(t *testing.T) {
+ dir:=t.TempDir()
+ if err:=os.WriteFile(filepath.Join(dir,"admin.html"), []byte("<!doctype html><title>Admin</title>"),0600);err!=nil{t.Fatal(err)}
+ root,err:=os.OpenRoot(dir);if err!=nil{t.Fatal(err)}
+ defer root.Close()
+ req:=httptest.NewRequest("GET","https://meet.example.org/admin.html",nil)
+ w:=httptest.NewRecorder()
+ (&fileHandler{root:root}).ServeHTTP(w,req)
+ if w.Code!=http.StatusOK {t.Fatalf("admin page status: %v",w.Code)}
+ if cache:=w.Header().Get("Cache-Control");cache!="no-store" {t.Fatalf("admin page cache: %q",cache)}
+ policy:=w.Header().Get("Content-Security-Policy")
+ for _,directive:=range []string{"script-src 'self'","object-src 'none'","frame-ancestors 'none'","base-uri 'none'"} {
+  if !strings.Contains(policy,directive) {t.Errorf("CSP missing %q: %s",directive,policy)}
+ }
+ if w.Header().Get("X-Content-Type-Options")!="nosniff" {t.Fatal("nosniff missing")}
+}

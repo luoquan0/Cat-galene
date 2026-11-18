@@ -13,6 +13,38 @@ panels. It preserves the original Galène signaling, recording, access control,
 and 4K screen-sharing controls. Frontend assets use versioned URLs to reduce
 stale-cache problems after server upgrades.
 
+## 管理员后台与安全初始化
+
+部署或升级后，可使用 **`https://你的域名/admin.html`** 打开管理员后台，
+创建/编辑/删除会议室，创建/删除会议室成员，以及设置成员身份、重置密码。
+管理员账号为 **全局服务器管理员**，与会议室成员账号是两个不同概念。
+
+首次部署（**请以运行 Cat-Meet 服务的专用 Linux 用户操作**）：
+
+```sh
+mkdir -p data groups
+chmod 700 data groups
+./cat-meetctl bootstrap-admin -config ./data/config.json -user admin
+```
+
+命令需要交互式终端，输入两次密码（12–72 字节），不会在屏幕回显或命令行参数、
+环境变量、`galenectl.json` 中保存管理员明文密码。它在 `data/config.json`
+中写入 bcrypt（cost 12）哈希，并将权限设置为 **0600**，启用
+`"writableGroups": true`。已有服务器设置会保留；如果全局管理员已存在，
+初始化会拒绝覆盖，以免误伤已有部署。此时应直接使用原管理员账号，
+必要时由服务器所有者审慎修改配置。
+
+**切勿将 `data/`、`groups/`、私钥、管理员配置上传到网页 `static/` 目录。**
+使用受信任的 HTTPS 证书，并在反向代理中仅以 HTTPS 访问管理员后台。
+升级时先备份 `data/`、`groups/`、录制文件和证书，保留这些目录；
+更换新 `cat-meet`、`cat-meetctl` 以及完整 `static/` 目录。
+
+新后台不在浏览器持久化管理员密码，请勿在公共电脑上登录。
+服务器对每次管理操作单独鉴权，使用同源请求、ETag 并发校验、
+受控跳转、CSP 和输出文本化来降低注入与恶意跳转风险。
+当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
+但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
+
 ## Downloads
 
 Get the **Cat-Meet Linux server** from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).
