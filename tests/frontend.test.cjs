@@ -762,10 +762,10 @@ test('Cat-Meet compact homepage contains one meeting-name join flow', () => {
     for(const id of ['groupform', 'group', 'submitbutton', 'language-select'])
         assert.match(home, new RegExp('id="' + id + '"'));
     assert.match(home, /cm-home-compact/);
-    assert.match(home, /cat-meet-home-compact\\.css/);
-    assert.match(js, /fetch\\(statusUrl/);
-    assert.match(js, /location\\.assign\\(url\\)/);
-    assert.doesNotMatch(home, /cm-home-sidebar|cm-home-hero|public-groups-table|admin\\.html/);
+    assert.match(home, /cat-meet-home-compact\.css/);
+    assert.match(js, /fetch\(statusUrl/);
+    assert.match(js, /location\.assign\(url\)/);
+    assert.doesNotMatch(home, /cm-home-sidebar|cm-home-hero|public-groups-table|admin\.html/);
 });
 
 test('Cat-Meet v2 live meeting keeps Galene IDs and real media settings', () => {
