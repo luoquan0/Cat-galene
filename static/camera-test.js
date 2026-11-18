@@ -153,6 +153,9 @@ CameraTest.prototype.setStream = async function(force) {
         if(replacement)
             stopStream(replacement);
         this.video.srcObject = old || null;
+        if(old && old.getTracks().some(track => track.readyState === 'live')) {
+            try { await this.video.play(); } catch(_) {}
+        }
         throw error;
     }
 }

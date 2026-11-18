@@ -607,6 +607,8 @@ function setLocalMute(mute, reflect) {
 if(navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
     navigator.mediaDevices.addEventListener('devicechange', async () => {
         try {
+            if(!cameraTest)
+                return;
             await cameraTest.setMediaChoices();
             cameraTest.reflectSettings();
         } catch(e) {
@@ -1627,19 +1629,40 @@ async function addLocalMedia(localId) {
             tracks.push(previous);
             continue;
         }
-        if(previous) previous.stop();
         try {
             const requested = kind === 'audio' ?
                 {audio: constraints, video: false} :
                 {audio: false, video: constraints};
-            const captured = await navigator.mediaDevices.getUserMedia(requested);
+            let captured;
+            try {
+                captured = await navigator.mediaDevices.getUserMedia(requested);
+            } catch(error) {
+                // Retry stale mobile device IDs and overly strict camera
+                // constraints with the browser's current default device.
+                if(error.name !== 'OverconstrainedError' &&
+                   error.name !== 'NotFoundError' &&
+                   error.name !== 'DevicesNotFoundError')
+                    throw error;
+                captured = await navigator.mediaDevices.getUserMedia({
+                    audio: kind === 'audio',
+                    video: kind === 'video',
+                });
+            }
             const track = captured.getTracks().find(t => t.kind === kind);
-            if(!track)
+            if(!track) {
+                stopStream(captured);
                 throw new Error('No ' + kind + ' track returned');
+            }
+            if(previous)
+                previous.stop();
             tracks.push(track);
         } catch(e) {
             console.error(e);
             displayError(e);
+            // Keep the old source alive when a device switch fails. Cloning
+            // lets the old PeerConnection close without killing the fallback.
+            if(previous && previous.readyState === 'live')
+                tracks.push(previous.clone());
         }
     }
 
@@ -4569,8 +4592,11 @@ async function start() {
     // Always show the local account/password form. Do not silently join via
     // invitation tokens or redirect around the room's credential prompt.
     token = null;
-    if(parms.has('token'))
+    if(parms.has('token')) {
         displayWarning('请使用会议室账号和密码登录，邀请链接不会跳过验证。');
+        parms.delete('token');
+        window.history.replaceState(null, '', window.location.pathname);
+    }
     setVisibility('login-container', true);
     getInputElement('username').required = true;
     getInputElement('password').required = true;
