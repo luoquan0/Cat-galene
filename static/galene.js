@@ -2970,7 +2970,7 @@ function formatFileSize(size) {
     if(!Number.isFinite(size) || size < 0)
         return '';
     if(size < 1024)
-        return \`\${size} B\`;
+        return `${size} B`;
     const units = ['KB', 'MB', 'GB', 'TB'];
     let value = size;
     let unit = -1;
@@ -2978,7 +2978,7 @@ function formatFileSize(size) {
         value /= 1024;
         unit++;
     }
-    return \`\${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} \${units[unit]}\`;
+    return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
 function isImageFileType(mimetype) {
@@ -3004,9 +3004,9 @@ function createFileAttachmentCard(f) {
     let meta = document.createElement('div');
     meta.className = 'cm-file-meta';
     meta.textContent =
-        \`\${isImageFileType(f.mimetype) ? '图片' : '文件'} · \${formatFileSize(f.size)}\`;
+        `${isImageFileType(f.mimetype) ? '图片' : '文件'} · ${formatFileSize(f.size)}`;
     if(f.up)
-        meta.textContent += \` · 发送给 \${f.username || '成员'}\`;
+        meta.textContent += ` · 发送给 ${f.username || '成员'}`;
     body.appendChild(meta);
 
     let status = document.createElement('div');
@@ -3144,12 +3144,12 @@ function createFileBatchCard(file, total) {
     const meta = document.createElement('div');
     meta.className = 'cm-file-meta';
     meta.textContent =
-        \`\${file.type && file.type.startsWith('image/') ? '图片' : '文件'} · \${formatFileSize(file.size)} · \${total} 位成员\`;
+        `${file.type && file.type.startsWith('image/') ? '图片' : '文件'} · ${formatFileSize(file.size)} · ${total} 位成员`;
     body.appendChild(meta);
 
     const status = document.createElement('div');
     status.className = 'cm-file-status';
-    status.textContent = \`发送中 · 0/\${total}\`;
+    status.textContent = `发送中 · 0/${total}`;
     body.appendChild(status);
 
     card.appendChild(body);
@@ -3163,13 +3163,13 @@ function updateFileBatchCard(batch) {
     const completed = batch.done + batch.failed;
     if(batch.failed) {
         batch.card.cmStatus.textContent =
-            \`已完成 \${completed}/\${batch.total}\` +
-            \` · \${batch.done} 成功 · \${batch.failed} 失败\`;
+            `已完成 ${completed}/${batch.total}` +
+            ` · ${batch.done} 成功 · ${batch.failed} 失败`;
     } else if(batch.done >= batch.total) {
-        batch.card.cmStatus.textContent = \`已发送给 \${batch.total} 位成员\`;
+        batch.card.cmStatus.textContent = `已发送给 ${batch.total} 位成员`;
     } else {
         batch.card.cmStatus.textContent =
-            \`发送中 · \${batch.done}/\${batch.total}\`;
+            `发送中 · ${batch.done}/${batch.total}`;
     }
 }
 
@@ -3259,13 +3259,13 @@ function gotFileTransferEvent(state, data) {
         break;
     case 'cancelled':
         updateFileCardStatus(f,
-            data ? \`已取消：\${data.toString()}\` : '传输已取消');
+            data ? `已取消：${data.toString()}` : '传输已取消');
         break;
     case 'closed':
         break;
     default:
-        console.error(\`Unexpected state "\${state}"\`);
-        f.cancel(\`unexpected state "\${state}" (this shouldn't happen)\`);
+        console.error(`Unexpected state "${state}"`);
+        f.cancel(`unexpected state "${state}" (this shouldn't happen)`);
         break;
     }
 }
