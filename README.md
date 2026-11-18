@@ -50,14 +50,21 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.7
+
+- Fixed the broken logo and favicon by placing the uploaded image at `static/chaofan.png`, the actual web static root.
+- Matched the participant drawer and chat drawer widths on desktop and narrow screens.
+- Fixed chat composer overflow: the textarea no longer shows a resize handle, and attachment/send controls stay inside the rounded input bar.
+- Kept clipboard image paste, group file sending, previews, and downloads.
+
 ## Cat-Meet v1.2.2-cat.6
 
 - Added Cat Studio branding from `chaofan.png` to the web UI and favicon.
 - Added chat attachment controls, clipboard image paste, and group-wide file sending.
 - Received files now appear in the conversation with progress and download/save controls.
 - Reworked the meeting palette into a softer, rounded kawaii style.
-- The Linux release package includes `chaofan.png` beside the server so the built-in
-  branding endpoint works without requiring a second upload.
+- The Linux release package includes `static/chaofan.png`, where the web server
+  serves browser assets from. The repository-root upload is retained as the source copy.
 
 ## Cat-Meet v1.2.2-cat.3
 

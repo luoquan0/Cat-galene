@@ -952,11 +952,12 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.6/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.6/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.6/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.6/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.7/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.7/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.7/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.7/);
     assert.match(index, /src="\/chaofan\.png/);
+    assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
     assert.match(index, /rel="icon"[^>]+chaofan\.png/);
     assert.match(html, /rel="icon"[^>]+chaofan\.png/);
@@ -970,6 +971,16 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     assert.match(cute, /body\.cm-v2-room/);
     assert.match(cute, /\.cm-file-card/);
     assert.equal((index.match(/cm-compact-card/g) || []).length > 0, true);
+});
+
+test('chat drawer widths and composer controls stay inside the panel', () => {
+    const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    assert.match(cute, /--cm-drawer-width:\s*min\(326px, calc\(100vw - 24px\)\)/);
+    assert.match(cute, /#left-sidebar\.active[\s\S]*?width: var\(--cm-drawer-width\)/);
+    assert.match(cute, /#left\s*\{[\s\S]*?width: var\(--cm-drawer-width\) !important/);
+    assert.match(cute, /#input\s*\{[\s\S]*?resize: none/);
+    assert.match(cute, /#inputform\s*\{[\s\S]*?box-sizing: border-box/);
+    assert.match(cute, /#chatbox\s*\{[\s\S]*?overflow: hidden/);
 });
 
 test('chat attachments support clipboard images and group file sending', () => {

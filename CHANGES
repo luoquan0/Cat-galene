@@ -1,3 +1,11 @@
+18 November 2026: Cat-Meet v1.2.2-cat.7
+
+  * Fixed homepage, meeting logo, and favicon delivery by placing the shared
+    chaofan.png blob in static/, the actual web server static root.
+  * Aligned the participant and chat drawers to the same responsive width.
+  * Fixed the chat composer layout so its textarea, attachment button, and send
+    button remain inside the panel without a resize handle or horizontal spill.
+
 18 November 2026: Cat-Meet v1.2.2-cat.6
 
   * Added Cat Studio branding from chaofan.png to the homepage, meeting header,

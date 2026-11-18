@@ -540,3 +540,175 @@ body.cm-v2-room .sidenav-header {
         grid-column: 1 / -1;
     }
 }
+
+
+/* v1.2.2-cat.7: keep the people drawer and chat drawer on the same edge. */
+body.cm-v2-room {
+    --cm-drawer-width: min(326px, calc(100vw - 24px));
+}
+
+body.cm-v2-room #left-sidebar {
+    width: 326px;
+    min-width: 326px;
+    max-width: 326px;
+    flex-basis: 326px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 960px) {
+    body.cm-v2-room #left-sidebar,
+    body.cm-v2-room #left-sidebar.active {
+        width: var(--cm-drawer-width);
+        min-width: var(--cm-drawer-width);
+        max-width: var(--cm-drawer-width);
+        flex: 0 0 var(--cm-drawer-width);
+        box-sizing: border-box;
+    }
+
+    body.cm-v2-room #left {
+        width: var(--cm-drawer-width) !important;
+        min-width: 0;
+        max-width: var(--cm-drawer-width);
+        box-sizing: border-box;
+    }
+}
+
+body.cm-v2-room #left,
+body.cm-v2-room #chat,
+body.cm-v2-room #chatbox,
+body.cm-v2-room #box,
+body.cm-v2-room #chat .reply,
+body.cm-v2-room #inputform {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room #left {
+    overflow: hidden;
+}
+
+body.cm-v2-room #chat {
+    width: 100%;
+    overflow: hidden;
+}
+
+body.cm-v2-room #chatbox {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.cm-v2-room #box {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    overflow-x: hidden;
+}
+
+body.cm-v2-room #chat .reply {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto !important;
+    min-height: 74px;
+    padding: 10px 12px 12px;
+    overflow: hidden;
+}
+
+body.cm-v2-room #inputform {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: auto !important;
+    min-height: 52px;
+    padding: 6px;
+    overflow: hidden;
+}
+
+body.cm-v2-room #input {
+    display: block;
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    max-width: 100%;
+    height: 42px;
+    min-height: 42px;
+    max-height: 96px;
+    margin: 0;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    resize: none;
+    overflow-y: auto;
+}
+
+body.cm-v2-room .cm-chat-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+body.cm-v2-room .cm-chat-attach,
+body.cm-v2-room #inputbutton {
+    display: inline-flex;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room #attachment-input[hidden] {
+    display: none !important;
+}
+
+body.cm-v2-room .cm-side-tabs {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room .cm-side-tabs button {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room .cm-side-tabs button:focus-visible,
+body.cm-v2-room #attachbutton:focus-visible,
+body.cm-v2-room #inputbutton:focus-visible {
+    outline: 2px solid rgba(232, 111, 145, .72);
+    outline-offset: 2px;
+}
+
+body.cm-v2-room .cm-side-tabs button:focus:not(:focus-visible),
+body.cm-v2-room #attachbutton:focus:not(:focus-visible),
+body.cm-v2-room #inputbutton:focus:not(:focus-visible) {
+    outline: none;
+}
+
+body.cm-v2-room .cm-file-card {
+    width: min(100%, 410px);
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room .cm-file-card > * {
+    min-width: 0;
+    box-sizing: border-box;
+}

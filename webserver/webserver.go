@@ -229,15 +229,7 @@ func (fh *fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		p = r.URL.Path[1:]
 	}
 
-	var f *os.File
-	var err error
-	f, err = fh.root.Open(p)
-	if err != nil && p == "chaofan.png" && errors.Is(err, os.ErrNotExist) {
-		// The branding asset is kept at repository/package root so it can be
-		// uploaded once without duplicating a binary blob into static/.
-		// Only this fixed filename is allowed to fall back outside StaticRoot.
-		f, err = os.Open("chaofan.png")
-	}
+	f, err := fh.root.Open(p)
 	if err != nil {
 		httpError(w, err)
 		return
