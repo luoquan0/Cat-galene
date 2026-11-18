@@ -101,7 +101,7 @@ func cspHeader(w http.ResponseWriter, connect string) {
 		c = "connect-src " + connect + " ws: wss: 'self'; "
 	}
 	w.Header().Add("Content-Security-Policy",
-		c+"img-src 'self'; media-src blob: 'self'; script-src 'self' 'wasm-unsafe-eval'; "+
+		c+"img-src 'self' blob:; media-src blob: 'self'; script-src 'self' 'wasm-unsafe-eval'; "+
 			"default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
 
 	w.Header().Set("X-Frame-Options", "DENY")
