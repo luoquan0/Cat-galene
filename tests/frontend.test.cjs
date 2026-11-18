@@ -945,12 +945,19 @@ test('dark meeting menus and option lists use high contrast colors', () => {
     assert.match(theme, /background: #efedff !important/);
 });
 
-test('professional responsive UI is loaded on homepage and meeting room', () => {
+test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const index = fs.readFileSync('static/index.html', 'utf8');
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.5/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.5/);
+    const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.6/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.6/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.6/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.6/);
+    assert.match(index, /src="\/chaofan\.png/);
+    assert.match(html, /src="\/chaofan\.png/);
+    assert.match(index, /rel="icon"[^>]+chaofan\.png/);
+    assert.match(html, /rel="icon"[^>]+chaofan\.png/);
     assert.match(css, /body\.cm-home-compact\s*\{/);
     assert.match(css, /body\.cm-v2-room\s*\{/);
     assert.match(css, /@media \(max-width: 760px\)/);
@@ -958,9 +965,17 @@ test('professional responsive UI is loaded on homepage and meeting room', () => 
     assert.match(css, /body\.cm-v2-room #left-sidebar\s*\{[\s\S]*?transform: translateX\(105%\)/);
     assert.match(css, /body\.cm-v2-room \.nav-menu\s*\{[\s\S]*?max-width: calc\(100vw - 10px\)/);
     assert.match(css, /body\.cm-v2-room\.cm-prejoin #right \.login-container\s*\{[\s\S]*?grid-template-columns: 1fr/);
-    assert.match(css, /--cm-ui-bg: #f3f5f7/);
-    assert.match(css, /background: #2f6fed/);
+    assert.match(cute, /body\.cm-v2-room/);
+    assert.match(cute, /\.cm-file-card/);
     assert.equal((index.match(/cm-compact-card/g) || []).length > 0, true);
-    assert.match(index, /<span class="cm-logo">CM<\/span>/);
-    assert.match(html, /<span class="cm-meeting-brand-icon" aria-hidden="true">CM<\/span>/);
+});
+
+test('chat attachments support clipboard images and group file sending', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.match(html, /id="attachbutton"/);
+    assert.match(html, /id="attachment-input"/);
+    assert.match(galene, /clipboardData\.files/);
+    assert.match(galene, /function sendFileToEveryone\(file\)/);
+    assert.match(galene, /serverConnection\.sendFile\(id, file\)/);
+    assert.match(galene, /function finishIncomingFileCard\(f, data\)/);
 });
