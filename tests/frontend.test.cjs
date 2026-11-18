@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.7/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.7/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.7/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.7/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.8/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.8/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.8/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.8/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
@@ -973,14 +973,23 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     assert.equal((index.match(/cm-compact-card/g) || []).length > 0, true);
 });
 
-test('chat drawer widths and composer controls stay inside the panel', () => {
+test('chat drawer opens from the left and collapses without moving the video stage', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    const bridge = fs.readFileSync('static/cat-meet-v2.js', 'utf8');
+    assert.match(html, /id="cm-chat-backdrop"/);
+    assert.match(html, /class="cm-chat-drawer-header"/);
+    assert.match(html, /id="close-chat"/);
     assert.match(cute, /--cm-drawer-width:\s*min\(326px, calc\(100vw - 24px\)\)/);
-    assert.match(cute, /#left-sidebar\.active[\s\S]*?width: var\(--cm-drawer-width\)/);
-    assert.match(cute, /#left\s*\{[\s\S]*?width: var\(--cm-drawer-width\) !important/);
+    assert.match(cute, /body\.cm-v2-room #left\s*\{[\s\S]*?left:\s*0;[\s\S]*?right:\s*auto;[\s\S]*?translateX\(-105%\)/);
+    assert.match(cute, /body\.cm-v2-room\.cm-chat-open #left:not\(\.invisible\)[\s\S]*?translateX\(0\)/);
+    assert.match(cute, /cm-chat-open #left-sidebar #users\s*\{[\s\S]*?visibility: visible/);
     assert.match(cute, /#input\s*\{[\s\S]*?resize: none/);
     assert.match(cute, /#inputform\s*\{[\s\S]*?box-sizing: border-box/);
     assert.match(cute, /#chatbox\s*\{[\s\S]*?overflow: hidden/);
+    assert.match(bridge, /sidebar\.classList\.remove\('active'\)/);
+    assert.match(bridge, /event\.key !== 'Escape'/);
+    assert.match(bridge, /backdrop\.addEventListener\('click', closeChat\)/);
 });
 
 test('chat attachments support clipboard images and group file sending', () => {

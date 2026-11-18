@@ -50,6 +50,13 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.8
+
+- Moved the conversation into a left-side drawer that slides in from the left and stays collapsed by default.
+- Added close-button, backdrop-click, and Escape-key dismissal.
+- Kept the participant list on the right and prevented the chat drawer from shrinking the meeting video stage.
+- Mobile devices open the chat drawer from the left and automatically collapse the participant drawer to avoid overlap.
+
 ## Cat-Meet v1.2.2-cat.7
 
 - Fixed the broken logo and favicon by placing the uploaded image at `static/chaofan.png`, the actual web static root.

@@ -1,3 +1,12 @@
+18 November 2026: Cat-Meet v1.2.2-cat.8
+
+  * Moved chat into a left-side drawer, hidden by default and animated in
+    from the left when the Chat tab is selected.
+  * Added a drawer header and close button, plus backdrop and Escape dismissal.
+  * Kept the participant list on the right and the meeting video stage at
+    its original width while chat is open.
+  * On mobile, opening chat closes the participant drawer to prevent overlap.
+
 18 November 2026: Cat-Meet v1.2.2-cat.7
 
   * Fixed homepage, meeting logo, and favicon delivery by placing the shared
