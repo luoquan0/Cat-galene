@@ -921,21 +921,21 @@ test('room login is visible immediately while room metadata loads', () => {
 });
 
 test('microphone capture is automatically recovered after ended or muted tracks', () => {
-    assert.match(galene, /function scheduleAudioRecovery\\(force\\)/);
-    assert.match(galene, /Math\\.min\\(1000 \\* \\(2 \\*\\* Math\\.min\\(audioRecoveryState\\.attempts, 5\\)\\), 30000\\)/);
-    assert.match(galene, /t\\.onmute = \\(\\) =>/);
-    assert.match(galene, /t\\.onunmute = \\(\\) =>/);
-    assert.match(galene, /scheduleAudioRecovery\\(false\\)/);
-    assert.match(galene, /await addLocalMedia\\(current\\?\\.localId, forceCapture, true\\)/);
+    assert.match(galene, /function scheduleAudioRecovery\(force\)/);
+    assert.match(galene, /Math\.min\(1000 \* \(2 \*\* Math\.min\(audioRecoveryState\.attempts, 5\)\), 30000\)/);
+    assert.match(galene, /t\.onmute = \(\) =>/);
+    assert.match(galene, /t\.onunmute = \(\) =>/);
+    assert.match(galene, /scheduleAudioRecovery\(false\)/);
+    assert.match(galene, /await addLocalMedia\(current\?\.localId, forceCapture, true\)/);
     assert.match(galene, /kind === 'audio' && forceAudio/);
-    assert.match(galene, /setLocalMute\\(true, false\\)/);
-    assert.match(galene, /if\\(settings\\.audio\\)\\s+setLocalMute\\(true, false\\)/);
+    assert.match(galene, /setLocalMute\(true, false\)/);
+    assert.match(galene, /if\(settings\.audio\)\s+setLocalMute\(true, false\)/);
 });
 
 test('manual microphone mute or explicit audio-off never starts recovery', () => {
-    assert.match(galene, /if\\(!settings\\.audio \\|\\| settings\\.localMute \\|\\|/);
-    assert.match(galene, /if\\(!this\\.value\\)\\s+cancelAudioRecovery\\(\\)/);
-    assert.match(galene, /getSettings\\(\\)\\.localMute\\)\\s+scheduleAudioRecovery/);
+    assert.match(galene, /if\(!settings\.audio \|\| settings\.localMute \|\|/);
+    assert.match(galene, /if\(!this\.value\)\s+cancelAudioRecovery\(\)/);
+    assert.match(galene, /if\(getSettings\(\)\.audio && !getSettings\(\)\.localMute\)\s+scheduleAudioRecovery/);
 });
 
 test('dark meeting menus and option lists use high contrast colors', () => {

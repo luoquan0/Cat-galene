@@ -1439,7 +1439,7 @@ function scheduleAudioRecovery(force) {
 
         audioRecoveryState.attempts++;
         if(!audioRecoveryState.warned) {
-            displayWarning('麦克风连接中断，正在自动尝试恢复。');
+            displayWarning('Microphone interrupted; reconnecting automatically');
             audioRecoveryState.warned = true;
         }
         // Continue with a capped 30-second backoff while the user still wants
