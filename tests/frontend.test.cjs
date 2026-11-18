@@ -720,3 +720,16 @@ test('screen sharing zoom and dragging are local and bounded', () => {
     assert.ok(html.indexOf('/share-zoom.js') < html.indexOf('/galene.js'));
     assert.match(galene, /if\(c\.label === 'screenshare'\)\s+enableScreenShareZoom/);
 });
+
+test('Firefox camera test refreshes device choices after obtaining preview permission', () => {
+    const handler = galene.match(/document.getElementById\('test-camera'\).ontoggle = async function\(e\) \{[\s\S]*?\n\};?/);
+    assert.ok(handler, 'camera test toggle handler missing');
+    assert.match(handler[0], /await cameraTest\.setStream\(true\);\s*await cameraTest\.setMediaChoices\(\);\s*cameraTest\.reflectSettings\(\)/);
+});
+
+test('Galène 1.2.2 subgroup UI and participant activity labels are merged', () => {
+    assert.match(galene, /case 'subgrouplist':/);
+    assert.match(galene, /commands\.msgsubgroup =/);
+    assert.match(galene, /user-status-active/);
+    assert.match(galene, /function setUpLabel\(/);
+});

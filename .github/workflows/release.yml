@@ -1,4 +1,4 @@
-name: Linux Server + Windows Client Release
+name: Cat-Meet Linux Server CI and Release
 
 on:
   push:
@@ -6,43 +6,23 @@ on:
       - main
     tags:
       - "v*"
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  windows-smoke:
-    name: Windows native build and tests
-    runs-on: windows-latest
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up patched Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.27.2"
-          cache: true
-
-      - name: Run Windows tests
-        run: go test ./...
-
-      - name: Verify Windows client executable
-        shell: pwsh
-        run: |
-          go build -trimpath -o Cat-Meet-Client.exe ./client/windows
-          ./Cat-Meet-Client.exe -version
-
-  release:
-    name: Test and package Linux server + Windows client
-    needs: windows-smoke
+  verify:
+    name: Verify Go server and browser frontend
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up patched Go
+      - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: "1.27.2"
@@ -52,7 +32,10 @@ jobs:
         run: |
           go mod verify
           go test ./...
+          go build -trimpath -o /tmp/cat-meet .
+          go build -trimpath -o /tmp/cat-meetctl ./galenectl
           node --check static/galene.js
+          node --check static/protocol.js
           node --check static/share-zoom.js
           node --check static/i18n.js
           node --check static/camera-test.js
@@ -62,120 +45,68 @@ jobs:
       - name: Scan known Go vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@latest -mode=source ./...
 
-      - name: Resolve release version
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
-          else
-            echo "RELEASE_TAG=v1.2.1-cat.12" >> "${GITHUB_ENV}"
-          fi
+  release:
+    name: Package Linux server
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
 
-      - name: Build portable packages
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.2"
+          cache: true
+
+      - name: Build Linux server packages
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          for target in linux:amd64 linux:arm64 windows:amd64 windows:arm64; do
-            IFS=: read -r os arch <<< "${target}"
-            if [[ "${os}" == "windows" ]]; then
-              package="Cat-Meet_${RELEASE_TAG}_windows_client_${arch}"
-            else
-              package="Cat-Meet_${RELEASE_TAG}_linux_server_${arch}"
-            fi
+          for arch in amd64 arm64; do
+            package="Cat-Meet_${GITHUB_REF_NAME}_linux_server_${arch}"
             root="${RUNNER_TEMP}/${package}"
             mkdir -p "${root}"
-            if [[ "${os}" == "windows" ]]; then
-              CGO_ENABLED=0 GOOS=windows GOARCH="${arch}" \
-                go build -trimpath -ldflags="-s -w -H=windowsgui" \
-                -o "${root}/Cat-Meet-Client.exe" ./client/windows
-              cp client/windows/README-CLIENT-WINDOWS.txt "${root}/"
-              (cd "${RUNNER_TEMP}" && zip -qr \
-                "${GITHUB_WORKSPACE}/dist/${package}.zip" "${package}")
-            else
-              CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
-                go build -trimpath -ldflags="-s -w" -o "${root}/cat-meet" .
-              ln -s cat-meet "${root}/galene"
-              CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
-                go build -trimpath -ldflags="-s -w" -o "${root}/cat-meetctl" ./galenectl
-              ln -s cat-meetctl "${root}/galenectl"
-              cp -R static "${root}/static"
-              cp README.md LICENCE galene.md galene-install.md \
-                galene-client.md galene-protocol.md galene-api.md "${root}/"
-              tar -czf "dist/${package}.tar.gz" -C "${RUNNER_TEMP}" "${package}"
-            fi
+            CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
+              go build -trimpath -ldflags="-s -w" -o "${root}/cat-meet" .
+            ln -s cat-meet "${root}/galene"
+            CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
+              go build -trimpath -ldflags="-s -w" -o "${root}/cat-meetctl" ./galenectl
+            ln -s cat-meetctl "${root}/galenectl"
+            cp -R static "${root}/static"
+            cp README.md LICENCE galene.md galene-install.md \
+              galene-client.md galene-protocol.md galene-api.md "${root}/"
+            tar -czf "dist/${package}.tar.gz" -C "${RUNNER_TEMP}" "${package}"
           done
-          (cd dist && sha256sum *.zip *.tar.gz > SHA256SUMS.txt)
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS.txt)
 
-      - name: Publish new release
+      - name: Publish Linux release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "Release ${RELEASE_TAG} already exists; will not overwrite artifacts."
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; will not overwrite artifacts."
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.1-cat.12: Linux server and Windows meeting client.
+          Cat-Meet Linux server based on Galène 1.2.2.
 
-          Security:
-          - Escaped participant names in context menus and recording-page HTML.
-          - Added CSRF protection to recording deletion, strict Origin checks to
-            administrative API mutations, and stricter response security headers.
-          - Upgraded to patched Go 1.27.2 and refreshed vulnerable Go dependencies.
+          - Includes upstream moderator-permission fixes, subgroup improvements,
+            Firefox camera-test compatibility, and dependency updates.
+          - Retains independent microphone/camera controls, Chinese/English
+            interface, adjustable high-resolution screen share, and viewer zoom.
+          - Participants join from their browsers; no Windows client is built.
+          - Linux amd64/arm64 server packages and SHA256 checksums.
 
-          Conference:
-          - Audio and video now request browser permissions independently, with
-            default device fallback and preservation of unchanged tracks.
-          - Restored a compact camera control matching the microphone button.
-          - Extended the English/Simplified Chinese translation across all meeting
-            settings, dropdowns, dynamic labels and auxiliary pages.
-          - No automatic microphone request solely to enable Safari autoplay.
-          - Joining with camera and microphone disabled no longer captures an
-            empty stream or raises a device error.
-          - Camera-test works with audio-only, video-only, or no device selected.
-          - Added persistent screen-share presets for 720p/1080p/1K/2K/4K,
-            15/24/30/60/90/120 FPS, custom size/FPS, and an independent
-            configurable high-bitrate cap up to 100 Mbps.
-          - Restores settings across visits using browser local storage.
-          - Keeps screen shares at their highest requested quality when
-            viewers resize or collapse the video area; other camera streams
-            continue to adapt, and explicit low-quality preferences are kept.
-          - Prefers retaining screen-share resolution over frame rate during
-            congestion where the browser supports the WebRTC preference.
-          - Removed the conflicting smooth-video/sharp-text share mode.
-            Independent resolution, FPS and bitrate settings are the only
-            controls; text clarity remains prioritised, including old settings.
-          - Screen-share congestion estimation starts at a higher bitrate and
-            probes capacity faster while respecting packet loss and receiver
-            REMB feedback; camera bandwidth estimation is unchanged.
-          - Displays actual outbound encoding resolution, FPS, Mbps and
-            limitation reason when reported by the browser.
-
-          Cat-Meet rebrand and screen zoom:
-          - Renamed meeting UI, page titles, Windows client EXE, and portable
-            package names. Original Galene protocol/imports and legacy CLI
-            symlink names remain compatible with existing deployments.
-          - Added 50-400% screen-share viewing zoom in 25% increments, drag
-            to pan, Ctrl+wheel zoom, and one-click reset per screen view.
-          - Existing stored video, screen-share and language preferences migrate
-            automatically to the Cat-Meet browser storage keys.
-
-          Portable assets:
-          - Linux amd64 and arm64 server tar.gz packages, including web UI.
-          - Windows amd64 and arm64 *client* ZIP archives; the Windows client
-            joins an existing Linux Galene server without running a server.
-          - The Windows app opens the meeting in a standalone Edge/Chrome window
-            so webcam, microphone and screen sharing use native browser WebRTC.
-            Microsoft Edge or Google Chrome must be installed on the computer.
-          - SHA256SUMS.txt for file integrity verification.
-
-          Note: In Safari, autoplay of received audio/video may require the user
-          to press the playback button after joining.
+          See CHANGES and README for details.
           EOF
-          gh release create "${RELEASE_TAG}" dist/*.tar.gz dist/*.zip \
+          gh release create "${GITHUB_REF_NAME}" dist/*.tar.gz \
             dist/SHA256SUMS.txt --target "${GITHUB_SHA}" \
-            --title "Cat-Meet ${RELEASE_TAG}" \
+            --title "Cat-Meet ${GITHUB_REF_NAME}" \
             --notes-file "${RUNNER_TEMP}/notes.txt"
