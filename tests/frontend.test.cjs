@@ -958,7 +958,7 @@ test('professional responsive UI is loaded on homepage and meeting room', () => 
     assert.match(css, /body\.cm-v2-room #left-sidebar\s*\{[\s\S]*?transform: translateX\(105%\)/);
     assert.match(css, /body\.cm-v2-room \.nav-menu\s*\{[\s\S]*?max-width: calc\(100vw - 10px\)/);
     assert.match(css, /body\.cm-v2-room\.cm-prejoin #right \.login-container\s*\{[\s\S]*?grid-template-columns: 1fr/);
-    assert.match(css, /background: #f3f5f7/);
+    assert.match(css, /--cm-ui-bg: #f3f5f7/);
     assert.match(css, /background: #2f6fed/);
     assert.equal((index.match(/cm-compact-card/g) || []).length > 0, true);
     assert.match(index, /<span class="cm-logo">CM<\/span>/);
