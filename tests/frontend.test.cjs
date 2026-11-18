@@ -605,8 +605,10 @@ test('Cat-Meet branding and Linux-only browser-first releases', () => {
     const statistics = fs.readFileSync('static/stats.html', 'utf8');
     const release = fs.readFileSync('.github/workflows/release.yml', 'utf8');
     const readme = fs.readFileSync('README.md', 'utf8');
-    for(const page of [home, meeting])
-        assert.match(page, /<title>Cat-Meet<\/title>/);
+    for(const page of [home, meeting]) {
+        assert.match(page, /<title>小猫会议 · Cat-Meet<\/title>/);
+        assert.match(page, /rel="icon"[^>]+chaofan\.png/);
+    }
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
     assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_linux_server/);
     assert.match(release, /"\$\{root\}\/cat-meet"/);
