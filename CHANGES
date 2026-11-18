@@ -1,3 +1,12 @@
+18 November 2026: Cat-Meet v1.2.2-cat.9
+
+  * Moved the participant panel from the right column into a left-side drawer,
+    hidden by default and opened using the top-left list control.
+  * Added a backdrop, Escape-key dismissal, and keyboard support for the
+    top-left drawer toggle.
+  * Kept the meeting stage and bottom controls centred across the full width.
+  * Kept chat on the same left edge, overlaying the participant panel.
+
 18 November 2026: Cat-Meet v1.2.2-cat.8
 
   * Moved chat into a left-side drawer, hidden by default and animated in

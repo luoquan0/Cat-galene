@@ -50,6 +50,13 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.9
+
+- Moved the participant panel from the right side to a left-side drawer.
+- The participant drawer is hidden by default and opens from the top-left list button; clicking the backdrop or pressing Escape closes it.
+- The meeting stage and bottom control bar stay centered across the full available width instead of reserving space for the participant list.
+- The Chat tab opens the conversation over the same left drawer, keeping both panels on the left.
+
 ## Cat-Meet v1.2.2-cat.8
 
 - Moved the conversation into a left-side drawer that slides in from the left and stays collapsed by default.

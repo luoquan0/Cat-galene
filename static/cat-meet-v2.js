@@ -11,16 +11,16 @@
         const usersTab = document.getElementById('cm-tab-users');
         const chatTab = document.getElementById('cm-tab-chat');
         const closeButton = document.getElementById('close-chat');
-        const backdrop = document.getElementById('cm-chat-backdrop');
+        const chatBackdrop = document.getElementById('cm-chat-backdrop');
+        const peopleBackdrop = document.getElementById('cm-people-backdrop');
+        const sidebarToggle = document.getElementById('sidebarCollapse');
+        const mainrow = document.getElementById('mainrow');
         const leave = document.getElementById('cm-leave-button');
         const originalLeave = document.getElementById('disconnectbutton');
         if(!lobby || !sidebar || !chat || !usersTab || !chatTab ||
-           !closeButton || !backdrop || !leave || !originalLeave)
+           !closeButton || !chatBackdrop || !peopleBackdrop ||
+           !sidebarToggle || !mainrow || !leave || !originalLeave)
             return;
-
-        function isMobile() {
-            return window.matchMedia('(max-width: 900px)').matches;
-        }
 
         function closeChat() {
             root.classList.remove('cm-chat-open');
@@ -29,17 +29,32 @@
             chatTab.setAttribute('aria-selected', 'false');
         }
 
+        function openPeople() {
+            sidebar.classList.add('active');
+            mainrow.classList.add('full-width-active');
+        }
+
+        function closePeople() {
+            closeChat();
+            sidebar.classList.remove('active');
+            mainrow.classList.remove('full-width-active');
+        }
+
+        function syncPeoplePanel() {
+            const open = sidebar.classList.contains('active');
+            root.classList.toggle('cm-people-open', open);
+            sidebarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
         function openChat() {
+            openPeople();
             chat.classList.remove('invisible');
             root.classList.add('cm-chat-open');
             usersTab.setAttribute('aria-selected', 'false');
             chatTab.setAttribute('aria-selected', 'true');
-            if(isMobile())
-                sidebar.classList.remove('active');
         }
 
-        // Chat is a left-side drawer. Clicking Chat again collapses it.
-        function selectTab(tab, openPeopleOnMobile) {
+        function selectTab(tab) {
             if(tab === 'chat') {
                 if(root.classList.contains('cm-chat-open'))
                     closeChat();
@@ -49,31 +64,37 @@
             }
 
             closeChat();
-            if(openPeopleOnMobile && isMobile())
-                sidebar.classList.add('active');
+            openPeople();
         }
 
-        // The server controls when the pre-join form is shown; UI follows it.
-        function reflectLobby() {
-            const prejoin = !lobby.classList.contains('invisible');
-            root.classList.toggle('cm-prejoin', prejoin);
-            if(prejoin)
-                selectTab('users', false);
-        }
+        // The hamburger toggles the participant panel on the LEFT. Galene's
+        // existing click handler owns the toggle; this bridge only synchronises
+        // accessibility state and closes chat if the user toggles the panel.
+        sidebarToggle.addEventListener('click', () => {
+            if(root.classList.contains('cm-chat-open'))
+                closeChat();
+            queueMicrotask(syncPeoplePanel);
+        });
 
-        usersTab.addEventListener('click', () => selectTab('users', true));
-        chatTab.addEventListener('click', () => selectTab('chat', true));
+        sidebarToggle.addEventListener('keydown', event => {
+            if(event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                sidebarToggle.click();
+            }
+        });
+
+        usersTab.addEventListener('click', () => selectTab('users'));
+        chatTab.addEventListener('click', () => selectTab('chat'));
         leave.addEventListener('click', () => originalLeave.click());
 
-        // Capture the close action before Galene's legacy handler. Keep the
-        // drawer mounted off-canvas so CSS can animate it fully to the left.
         closeButton.addEventListener('click', event => {
             event.preventDefault();
             event.stopImmediatePropagation();
             closeChat();
         }, true);
 
-        backdrop.addEventListener('click', closeChat);
+        chatBackdrop.addEventListener('click', closeChat);
+        peopleBackdrop.addEventListener('click', closePeople);
 
         document.addEventListener('keydown', event => {
             if(event.key !== 'Escape')
@@ -82,15 +103,27 @@
                 closeChat();
                 return;
             }
+            if(sidebar.classList.contains('active'))
+                closePeople();
             const settingsNav = document.getElementById('sidebarnav');
-            if(isMobile() && sidebar.classList.contains('active') &&
-               (!settingsNav || !settingsNav.classList.contains('is-open')))
-                sidebar.classList.remove('active');
+            if(settingsNav && settingsNav.classList.contains('is-open'))
+                settingsNav.classList.remove('is-open');
         });
 
-        const observer = new MutationObserver(reflectLobby);
-        observer.observe(lobby, {attributes: true, attributeFilter: ['class']});
-        reflectLobby();
+        const sidebarObserver = new MutationObserver(syncPeoplePanel);
+        sidebarObserver.observe(sidebar, {attributes: true, attributeFilter: ['class']});
+        const lobbyObserver = new MutationObserver(() => {
+            const prejoin = !lobby.classList.contains('invisible');
+            root.classList.toggle('cm-prejoin', prejoin);
+            if(prejoin)
+                closePeople();
+        });
+        sidebar.classList.remove('active');
+        mainrow.classList.remove('full-width-active');
+        syncPeoplePanel();
+        lobbyObserver.observe(lobby, {attributes: true, attributeFilter: ['class']});
+        const prejoin = !lobby.classList.contains('invisible');
+        root.classList.toggle('cm-prejoin', prejoin);
     }
 
     if(document.readyState === 'loading')

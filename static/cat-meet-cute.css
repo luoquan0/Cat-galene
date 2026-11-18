@@ -959,3 +959,189 @@ body.cm-v2-room .cm-file-card > * {
         transition: none;
     }
 }
+
+
+/* v1.2.2-cat.9: the participant panel is a left drawer, not a fixed right column. */
+body.cm-v2-room {
+    --cm-drawer-width: min(326px, calc(100vw - 24px));
+}
+
+/* Keep the meeting stage full-width; both side panels are overlays, never columns. */
+body.cm-v2-room #main > .row.full-height {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+body.cm-v2-room #main > .row.full-height > .container {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.cm-v2-room #mainrow {
+    width: 100%;
+    min-width: 0;
+}
+
+body.cm-v2-room #right {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+body.cm-v2-room #right .video-container {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+body.cm-v2-room #expand-video {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.cm-v2-room #peers {
+    justify-items: center;
+    align-content: center;
+}
+
+/* Participant drawer: closed by default, opened only by the top-left list icon. */
+body.cm-v2-room #left-sidebar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: auto;
+    top: 77px;
+    bottom: 0;
+    width: var(--cm-drawer-width);
+    min-width: 0;
+    max-width: var(--cm-drawer-width);
+    height: auto;
+    flex: none;
+    margin: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    z-index: 50;
+    background: #fffdfb;
+    border-right: 1px solid var(--cat-line);
+    box-shadow: 16px 0 42px rgba(75, 48, 48, .18);
+    transform: translateX(-105%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform .24s ease, visibility .24s ease;
+}
+
+body.cm-v2-room #left-sidebar.active {
+    display: block;
+    left: 0;
+    right: auto;
+    width: var(--cm-drawer-width);
+    min-width: var(--cm-drawer-width);
+    max-width: var(--cm-drawer-width);
+    flex: none;
+    overflow: hidden;
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+body.cm-v2-room .cm-people-backdrop {
+    display: none;
+    position: fixed;
+    top: 77px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(25, 20, 26, .22);
+    z-index: 45;
+    cursor: default;
+}
+
+body.cm-v2-room.cm-people-open .cm-people-backdrop {
+    display: block;
+}
+
+body.cm-v2-room.cm-chat-open .cm-people-backdrop {
+    display: none;
+}
+
+/* Chat uses the same left edge and overlays the people list when its tab is selected. */
+body.cm-v2-room #left {
+    left: 0;
+    right: auto;
+    top: 77px;
+    bottom: 0;
+    width: var(--cm-drawer-width) !important;
+    max-width: var(--cm-drawer-width);
+    z-index: 60;
+}
+
+body.cm-v2-room .cm-chat-backdrop {
+    top: 77px;
+    z-index: 55;
+}
+
+body.cm-v2-room .cm-chat-drawer-header {
+    flex: 0 0 58px;
+}
+
+body.cm-v2-room .nav-menu {
+    left: 50%;
+}
+
+body.cm-v2-room #sidebarCollapse {
+    cursor: pointer;
+    user-select: none;
+}
+
+@media (max-width: 900px) {
+    body.cm-v2-room #left-sidebar,
+    body.cm-v2-room #left-sidebar.active {
+        left: 0;
+        right: auto;
+        top: 65px;
+        bottom: 0;
+        width: min(326px, calc(100vw - 24px));
+        min-width: min(326px, calc(100vw - 24px));
+        max-width: min(326px, calc(100vw - 24px));
+        height: calc(100dvh - 65px);
+    }
+
+    body.cm-v2-room #left {
+        left: 0;
+        right: auto;
+        top: 65px;
+        width: min(326px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px);
+    }
+
+    body.cm-v2-room .cm-people-backdrop,
+    body.cm-v2-room .cm-chat-backdrop {
+        top: 65px;
+    }
+
+    body.cm-v2-room #mainrow {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.cm-v2-room #left-sidebar,
+    body.cm-v2-room #left {
+        transition: none;
+    }
+}
