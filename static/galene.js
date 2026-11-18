@@ -1017,10 +1017,10 @@ function gotUpStats(stats) {
     }
 
     if(values.length === 0) {
-        setLabel(c, '');
+        setUpLabel(c, '');
     } else {
         values.sort((x,y) => x - y);
-        setLabel(c, values
+        setUpLabel(c, values
                  .map(x => Math.round(x / 1000).toString())
                  .reduce((x, y) => x + '+' + y));
     }
@@ -1036,6 +1036,14 @@ function setActive(c, value) {
         peer.classList.add('peer-active');
     else
         peer.classList.remove('peer-active');
+
+    let user = document.getElementById('user-' + c.source);
+    if(user) {
+        if(value)
+            user.classList.add('user-status-active');
+        else
+            user.classList.remove('user-status-active');
+    }
 }
 
 /**
@@ -1982,10 +1990,19 @@ async function setMedia(c, mirror, video) {
         label = document.createElement('div');
         label.id = 'label-' + c.localId;
         label.classList.add('label');
+        label.classList.add(c.up ? 'up-stream' : 'down-stream');
+        label.dataset.defaultText = '';
+        label.dataset.fallbackText = '';
+        label.dataset.showFallback = 'false';
+        label.onclick = function() {
+            let showFallback = (label.dataset.showFallback === 'true');
+            label.dataset.showFallback = showFallback ? 'false' : 'true';
+            updateLabelElement(label);
+        };
         div.appendChild(label);
     }
 
-    setLabel(c);
+    setUpLabel(c, '');
     setMediaStatus(c);
 
     showVideo();
@@ -2251,19 +2268,27 @@ function setMediaStatus(c) {
  * @param {Stream} c
  * @param {string} [fallback]
  */
-function setLabel(c, fallback) {
+function setUpLabel(c, fallback) {
     let label = document.getElementById('label-' + c.localId);
     if(!label)
         return;
-    let l = c.username;
-    if(l) {
-        label.textContent = l;
-        label.classList.remove('label-fallback');
-    } else if(fallback) {
-        label.textContent = fallback;
+    label.dataset.defaultText = c.username;
+    label.dataset.fallbackText = fallback;
+    updateLabelElement(label);
+}
+
+/**
+ * @param {HTMLElement} label
+ */
+function updateLabelElement(label) {
+    let defaultText = label.dataset.defaultText;
+    let fallbackText = label.dataset.fallbackText;
+    let showFallback = (label.dataset.showFallback === 'true');
+    if(showFallback) {
+        label.textContent = fallbackText || '(unknown)';
         label.classList.add('label-fallback');
     } else {
-        label.textContent = '';
+        label.textContent = defaultText;
         label.classList.remove('label-fallback');
     }
 }
@@ -2936,6 +2961,13 @@ function gotFileTransferEvent(state, data) {
     }
 }
 
+function groupsBase() {
+    let url = window.location.href;
+    if(!url.endsWith(group + '/'))
+       return '';
+    return url.slice(0, -(group.length + 1));
+}
+
 /**
  * @param {string} id
  * @param {string} dest
@@ -3037,6 +3069,40 @@ function gotUserMessage(id, dest, username, time, privileged, kind, error, messa
             'address ' + message.address :
             'unknown address';
         localMessage(`User ${message.id} has ${u} and ${a}.`);
+        break;
+    }
+    case 'subgrouplist': {
+        if(id) {
+            console.error(`Got message kind ${kind} not from server`);
+            return;
+        }
+        let div = document.createElement('div');
+        if(message.length == 0) {
+            div.textContent = window.CatMeetI18n?.translate('No subgroups.') || 'No subgroups.';
+        } else {
+            let base = groupsBase();
+            for(let i = 0; i < message.length; i++) {
+                if(i != 0)
+                    div.appendChild(document.createElement('br'));
+                let sg = message[i];
+                let g;
+                if(base) {
+                    g = document.createElement('a');
+                    g.textContent = sg.name;
+                    g.href = base + sg.name + '/';
+                    g.target = '_blank';
+                } else {
+                    g = document.createTextNode(sg.name);
+                }
+                div.appendChild(g);
+                let count =
+                    !(sg.clientCount) ? ': empty' :
+                    sg.clientCount == 1 ? ': 1 client' :
+                    `: ${sg.clientCount} clients`
+                div.appendChild(document.createTextNode(window.CatMeetI18n?.translate(count) || count));
+            }
+        }
+        localMessage(div);
         break;
     }
     default:
@@ -3213,14 +3279,19 @@ function addToChatbox(id, peerId, dest, nick, time, privileged, history, kind, m
 
         if(doHeader) {
             let header = document.createElement('p');
-            let user = document.createElement('span');
             let u = dest && serverConnection.users[dest];
             let name = (u && u.username);
-            user.textContent = dest ?
-                `${nick || '(anon)'} \u2192 ${name || '(anon)'}` :
-                (nick || '(anon)');
-            user.classList.add('message-user');
-            header.appendChild(user);
+            // messages with null id are sent by the server
+            if(id || nick) {
+                let user = document.createElement('span');
+                if(dest)
+                    user.textContent =
+                        `${nick || '(anon)'} \u2192 ${name || '(anon)'}`;
+                else
+                    user.textContent = (nick || '(anon)');
+                user.classList.add('message-user');
+                header.appendChild(user);
+            }
             header.classList.add('message-header');
             container.appendChild(header);
             if(time) {
@@ -3519,6 +3590,38 @@ commands.subgroups = {
         serverConnection.groupAction('subgroups');
     }
 };
+
+commands.touchsubgroup = {
+    f: (c, r) => {
+        let p = parseCommand(r);
+        if(!p[0])
+            throw new Error(`/${c} requires parameters`);
+        let url = document.location.href + p[0];
+        fetch(url, {"method": "HEAD"})
+            .then(r => {
+                if(r.status >= 300) {
+                    displayError(`Group ${p[0]}: ${r.status} ${r.statusText}`);
+                }
+            })
+            .catch(e => displayError(e));
+    }
+}
+
+commands.msgsubgroup = {
+    f: (c, r) => {
+        let p = parseCommand(r);
+        if(!p[0] || !p[1])
+            throw new Error(`/${c} requires parameters`);
+        let id = findUserId(p[0]);
+        if(!id)
+            throw new Error(`Unknown user ${p[0]}`);
+        let url = document.location.href + p[1];
+        let m = `Please join the group at <${encodeURI(url)}/>.`;
+        serverConnection.chat('', id, m);
+        addToChatbox(serverConnection.id, null, id, serverConnection.username,
+                     new Date(), false, false, '', m);
+    }
+}
 
 /**
  * @type {Record<string,number>}
@@ -4252,6 +4355,8 @@ document.getElementById('test-camera').ontoggle = async function(e) {
             if(cameraTest.video.srcObject != null)
                 return;
             await cameraTest.setStream(true);
+            await cameraTest.setMediaChoices();
+            cameraTest.reflectSettings();
             await cameraTest.setAnalyser();
         } catch(e) {
             displayError(e);

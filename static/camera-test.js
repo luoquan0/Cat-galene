@@ -234,6 +234,8 @@ CameraTest.prototype.drawFFT = function() {
     }
 }
 
+// Repeat device enumeration once a preview track is active so Firefox
+// exposes camera labels, without requesting permissions for disabled devices.
 CameraTest.prototype.setMediaChoices = async function() {
     // Listing devices should not request permission for devices the user
     // does not intend to use (or which are unavailable).
