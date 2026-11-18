@@ -608,7 +608,7 @@ test('Cat-Meet branding and Linux-only browser-first releases', () => {
     for(const page of [home, meeting])
         assert.match(page, /<title>Cat-Meet<\/title>/);
     assert.match(statistics, /<title>Cat-Meet statistics<\/title>/);
-    assert.match(release, /Cat-Meet_\$\{GITHUB_REF_NAME\}_linux_server/);
+    assert.match(release, /Cat-Meet_\$\{RELEASE_TAG\}_linux_server/);
     assert.match(release, /"\$\{root\}\/cat-meet"/);
     assert.match(release, /ln -s cat-meet "\$\{root\}\/galene"/);
     assert.doesNotMatch(release, /GOOS=windows|windows-smoke|_windows_client|Cat-Meet-Client\.exe/);
@@ -754,4 +754,63 @@ test('Firefox hides device IDs before permission: camera test uses default IDs s
     assert.equal(requested, 0);
     assert.equal(videoChoices.options[0].value, 'default');
     assert.equal(audioChoices.options[0].value, 'default');
+});
+
+test('Cat-Meet v2 workspace preserves real group lookup and language controls', () => {
+    const home = fs.readFileSync('static/index.html', 'utf8');
+    const js = fs.readFileSync('static/mainpage.js', 'utf8');
+    for(const id of ['groupform', 'group', 'submitbutton', 'public-groups',
+                      'public-groups-table', 'language-select'])
+        assert.match(home, new RegExp('id="' + id + '"'));
+    assert.match(home, /cat-meet-v2\.css\?v=1\.2\.2-cat\.1/);
+    assert.match(js, /fetch\(statusUrl/);
+    assert.match(js, /listPublicGroups\(\)/);
+    assert.doesNotMatch(home, /id="joinDemoBtn"|id="fakeBars"/);
+});
+
+test('Cat-Meet v2 live meeting keeps Galene IDs and real media settings', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const css = fs.readFileSync('static/cat-meet-v2.css', 'utf8');
+    const bridge = fs.readFileSync('static/cat-meet-v2.js', 'utf8');
+    for(const id of ['peers', 'box', 'loginform', 'presentoff', 'presentmike',
+                      'presentcamera', 'presentboth', 'mutebutton', 'camerabutton',
+                      'sharebutton', 'cm-tab-users', 'cm-tab-chat', 'cm-leave-button',
+                      'screenresselect', 'screenfpsselect', 'screenbitrateselect'])
+        assert.match(html, new RegExp('id="' + id + '"'));
+    assert.match(html, /cat-meet-v2\.js\?v=1\.2\.2-cat\.1/);
+    assert.match(css, /cm-v2-room/);
+    assert.match(css, /cm-v2-home/);
+    assert.match(bridge, /MutationObserver\(reflectLobby\)/);
+    assert.doesNotMatch(bridge, /getUserMedia|getDisplayMedia|new ServerConnection/);
+});
+
+test('camera-only lobby intent never enables or requests the microphone', () => {
+    const source = galene.match(/function configureJoinDevices\(present\) \{[\s\S]*?\n\}\n/);
+    assert.ok(source);
+    const settings = {audio:'default', video:'', localMute:false};
+    const sandbox = {
+        getSettings: () => settings,
+        updateSettings: values => Object.assign(settings, values),
+        reflectSettings: () => {},
+        updateCameraButton: () => {},
+    };
+    vm.runInNewContext(source[0] + '\nthis.configure = configureJoinDevices;', sandbox);
+    sandbox.configure('camera');
+    assert.equal(settings.audio, '');
+    assert.equal(settings.video, 'default');
+    assert.equal(settings.localMute, true);
+    sandbox.configure('mike');
+    assert.equal(settings.audio, 'default');
+    assert.equal(settings.video, '');
+});
+
+test('Cat-Meet v2 keeps every share-quality and viewing zoom control', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const zoom = fs.readFileSync('static/share-zoom.js', 'utf8');
+    assert.match(html, /option value="4k"/);
+    assert.match(html, /option value="120"/);
+    assert.match(html, /option value="50"/);
+    assert.match(html, /id="screen-share-stats"/);
+    assert.match(zoom, /state\.scale >= 4/);
+    assert.match(zoom, /state\.scale <= 0\.5/);
 });

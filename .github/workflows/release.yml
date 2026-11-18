@@ -34,6 +34,8 @@ jobs:
           go test ./...
           go build -trimpath -o /tmp/cat-meet .
           go build -trimpath -o /tmp/cat-meetctl ./galenectl
+          test -s static/cat-meet-v2.css
+          node --check static/cat-meet-v2.js
           node --check static/galene.js
           node --check static/protocol.js
           node --check static/share-zoom.js
@@ -47,7 +49,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.1]'))
     needs: verify
     permissions:
       contents: write
@@ -62,13 +64,22 @@ jobs:
           go-version: "1.27.4"
           cache: true
 
+      - name: Resolve release tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
+          else
+            echo "RELEASE_TAG=v1.2.2-cat.1" >> "${GITHUB_ENV}"
+          fi
+
       - name: Build Linux server packages
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           for arch in amd64 arm64; do
-            package="Cat-Meet_${GITHUB_REF_NAME}_linux_server_${arch}"
+            package="Cat-Meet_${RELEASE_TAG}_linux_server_${arch}"
             root="${RUNNER_TEMP}/${package}"
             mkdir -p "${root}"
             CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
@@ -90,23 +101,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "Release ${GITHUB_REF_NAME} already exists; will not overwrite artifacts."
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; will not overwrite artifacts."
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet Linux server based on Galène 1.2.2.
+          Cat-Meet v1.2.2-cat.1 · Galène 1.2.2 Linux server, browser-first UI refresh.
 
+          - Redesigned browser workspace, pre-join lobby, and dark live meeting UI.
+          - Independent camera and microphone controls, including camera-only joins.
           - Includes upstream moderator-permission fixes, subgroup improvements,
             Firefox camera-test compatibility, and dependency updates.
           - Retains independent microphone/camera controls, Chinese/English
             interface, adjustable high-resolution screen share, and viewer zoom.
-          - Participants join from their browsers; no Windows client is built.
+          - Participants join from their browsers; Windows desktop client is retired.
+          - Frontend assets are versioned to minimise stale browser caches.
           - Linux amd64/arm64 server packages and SHA256 checksums.
 
           See CHANGES and README for details.
           EOF
-          gh release create "${GITHUB_REF_NAME}" dist/*.tar.gz \
+          gh release create "${RELEASE_TAG}" dist/*.tar.gz \
             dist/SHA256SUMS.txt --target "${GITHUB_SHA}" \
-            --title "Cat-Meet ${GITHUB_REF_NAME}" \
+            --title "Cat-Meet ${RELEASE_TAG}" \
             --notes-file "${RUNNER_TEMP}/notes.txt"

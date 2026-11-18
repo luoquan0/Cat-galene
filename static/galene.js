@@ -2673,6 +2673,9 @@ function configureJoinDevices(present) {
     if(present === 'mike') {
         updateSettings({audio: settings.audio || 'default',
                         video: '', localMute: false});
+    } else if(present === 'camera') {
+        updateSettings({audio: '',
+                        video: settings.video || 'default', localMute: true});
     } else if(present === 'both') {
         updateSettings({audio: settings.audio || 'default',
                         video: settings.video || 'default', localMute: false});
@@ -4319,6 +4322,8 @@ document.getElementById('loginform').onsubmit = async function(e) {
         presentRequested = 'both';
     else if(getInputElement('presentmike').checked)
         presentRequested = 'mike';
+    else if(getInputElement('presentcamera').checked)
+        presentRequested = 'camera';
     else
         presentRequested = null;
     getInputElement('presentoff').checked = true;
