@@ -601,6 +601,20 @@ function setLocalMute(mute, reflect) {
         updateSettings({localMute: mute});
 }
 
+
+// Keep device menus current when mobile cameras are attached, removed or
+// become available after the browser grants permission.
+if(navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', async () => {
+        try {
+            await cameraTest.setMediaChoices();
+            cameraTest.reflectSettings();
+        } catch(e) {
+            console.warn('Could not refresh camera devices', e);
+        }
+    });
+}
+
 getSelectElement('videoselect').onchange = function(e) {
     e.preventDefault();
     if(!(this instanceof HTMLSelectElement))
@@ -1384,10 +1398,20 @@ async function setUpStream(c, stream) {
                 }
             }
         }
-        t.onended = e => {
-            stream.onaddtrack = null;
-            stream.onremovetrack = null;
-            c.close();
+        t.onended = () => {
+            // A mobile OS may suspend or revoke one capture track. Keep the
+            // other media kind alive instead of closing the whole camera stream.
+            const liveTracks = c.stream ? c.stream.getTracks().filter(track =>
+                track.readyState === 'live') : [];
+            if(liveTracks.length === 0) {
+                stream.onaddtrack = null;
+                stream.onremovetrack = null;
+                c.close();
+            } else {
+                setLocalMute(liveTracks.every(track => track.kind !== 'audio'), true);
+                updateCameraButton();
+                setButtonsVisibility();
+            }
         };
 
         let encodings = [];
@@ -2715,7 +2739,12 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
     case 'redirect':
         this.close();
         token = null;
-        document.location.href = message;
+        if(typeof message !== 'string' || !message.startsWith('/') || message.startsWith('//')) {
+            displayError('服务器返回了不安全的跳转地址');
+            setVisibility('login-container', true);
+            return;
+        }
+        document.location.assign(message);
         return;
     case 'leave':
         this.close();
@@ -4537,17 +4566,15 @@ async function start() {
     reflectSettings();
     updateCameraButton();
 
+    // Always show the local account/password form. Do not silently join via
+    // invitation tokens or redirect around the room's credential prompt.
+    token = null;
     if(parms.has('token'))
-        token = parms.get('token');
-
-    if(token) {
-        await serverConnect();
-    } else if(groupStatus.authPortal) {
-        window.location.href = groupStatus.authPortal;
-    } else {
-        setVisibility('login-container', true);
-        document.getElementById('username').focus()
-    }
+        displayWarning('请使用会议室账号和密码登录，邀请链接不会跳过验证。');
+    setVisibility('login-container', true);
+    getInputElement('username').required = true;
+    getInputElement('password').required = true;
+    getInputElement('username').focus();
     setViewportHeight();
 }
 
