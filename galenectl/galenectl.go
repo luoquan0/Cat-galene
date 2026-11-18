@@ -56,6 +56,10 @@ var commands = map[string]command{
 		command:     initialSetupCmd,
 		description: "initial setup of Galene and galenectl",
 	},
+	"bootstrap-admin": {
+		command:     bootstrapAdminCmd,
+		description: "set up a server administrator without storing plaintext credentials",
+	},
 	"set-password": {
 		command:     setPasswordCmd,
 		description: "set a user's password",

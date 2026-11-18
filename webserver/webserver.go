@@ -274,6 +274,13 @@ func (fh *fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	makeCachable(w, p, fi, true)
+    if p == "admin.html" {
+        w.Header().Set("Cache-Control", "no-store")
+        w.Header().Set("Content-Security-Policy",
+            "default-src 'none'; script-src 'self'; style-src 'self'; "+
+            "connect-src 'self'; img-src 'self'; font-src 'self'; "+
+            "base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'")
+    }
 	http.ServeContent(w, r, fi.Name(), fi.ModTime(), f)
 }
 
@@ -337,6 +344,26 @@ func splitPath(pth string) (string, string, string) {
 	return pth[:index], pth[index+1 : index+1+index2], pth[index+1+index2:]
 }
 
+// safeGroupRedirect allows only unambiguous same-site paths or deliberate
+// HTTPS destinations configured by an administrator, never script/data schemes
+// or scheme-relative URLs. Group redirect targets are not taken from a request.
+func safeGroupRedirect(raw string) bool {
+    if raw == "" || len(raw) > 2048 || strings.TrimSpace(raw) != raw ||
+        strings.ContainsAny(raw, "\\\r\n\x00\t") {
+        return false
+    }
+    target, err := url.Parse(raw)
+    if err != nil || target.User != nil || target.Opaque != "" {
+        return false
+    }
+    if target.Scheme == "" {
+        return target.Host == "" && strings.HasPrefix(raw, "/") &&
+            !strings.HasPrefix(raw, "//")
+    }
+    return target.Scheme == "https" && target.Host != "" &&
+        target.Hostname() != "" && target.Fragment == ""
+}
+
 func groupHandler(w http.ResponseWriter, r *http.Request) {
 	if redirect(w, r) {
 		return
@@ -381,6 +408,10 @@ func groupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if redirect := g.Description().Redirect; redirect != "" {
+        if !safeGroupRedirect(redirect) {
+            http.Error(w, "Invalid configured redirect", http.StatusBadRequest)
+            return
+        }
 		http.Redirect(w, r, redirect, http.StatusPermanentRedirect)
 		return
 	}
