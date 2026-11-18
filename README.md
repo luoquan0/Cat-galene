@@ -5,6 +5,14 @@ Cat-Meet is a self-hosted video meeting system based on the open-source
 meeting pages, independent microphone and camera controls, configurable
 high-resolution screen sharing, with meeting participants joining directly from their web browsers.
 
+## Web interface (v2.1)
+
+Cat-Meet now ships the redesigned browser workspace, independent audio/video
+lobby choices, and a dark in-meeting stage with switchable participant and chat
+panels. It preserves the original Galène signaling, recording, access control,
+and 4K screen-sharing controls. Frontend assets use versioned URLs to reduce
+stale-cache problems after server upgrades.
+
 ## Downloads
 
 Get the **Cat-Meet Linux server** from the [Releases page](https://github.com/luoquan0/Cat-galene/releases).
