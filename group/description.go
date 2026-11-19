@@ -30,7 +30,7 @@ var permissionsMap = map[string][]string{
 	"op":      {"op", "present", "message", "caption", "token"},
 	"present": {"present", "message"},
 	"message": {"message"},
-	"observe": {"document"},
+	"observe": {},
 	"caption": {"caption"},
 	"admin":   {"admin"},
 }

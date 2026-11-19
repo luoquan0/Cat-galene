@@ -122,7 +122,7 @@ func TestApi(t *testing.T) {
 	}
 
 	// Server-wide accounts are managed separately from room-local members.
-	resp, err = do("GET", "/galene-api/v0/.global-users/", "", "", "", "")
+	resp, err := do("GET", "/galene-api/v0/.global-users/", "", "", "", "")
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("List global users: response=%v err=%v", resp, err)
 	}

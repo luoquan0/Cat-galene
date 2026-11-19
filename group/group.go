@@ -1342,6 +1342,15 @@ func validUsername(username string) bool {
 	return username == "" || validGroupName(username)
 }
 
+// effectivePermissions preserves the observe role's media/chat restrictions
+// while allowing it to participate in shared-document collaboration.
+func effectivePermissions(p Permissions, desc *Description) []string {
+	if p.name == "observe" {
+		return []string{"document"}
+	}
+	return p.Permissions(desc)
+}
+
 func (desc *Description) GetPermission(groupname string, creds ClientCredentials) (string, []string, error) {
 	var username string
 	var perms []string
@@ -1384,7 +1393,7 @@ func (desc *Description) GetPermission(groupname string, creds ClientCredentials
 					err: errors.New("remembered account no longer exists"),
 				}
 			}
-			perms = user.Permissions.Permissions(desc)
+			perms = effectivePermissions(user.Permissions, desc)
 		}
 		if username == "" && creds.Username != nil {
 			if desc.userExists(*creds.Username) {
@@ -1398,7 +1407,7 @@ func (desc *Description) GetPermission(groupname string, creds ClientCredentials
 		if err != nil {
 			return "", nil, err
 		}
-		perms = ps.Permissions(desc)
+		perms = effectivePermissions(ps, desc)
 	} else {
 		return "", nil, errors.New("neither username nor token provided")
 	}

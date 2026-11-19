@@ -110,7 +110,20 @@ func TestGlobalAccountRememberBindingAndAdminProtection(t *testing.T) {
 }
 
 func TestObserverCanUseDocumentCollaborationWithoutChatOrMedia(t *testing.T) {
-	permissions := (Permissions{name: "observe"}).Permissions(&Description{})
+	password := "observer-password"
+	desc := &Description{Users: map[string]UserDescription{
+		"viewer": {
+			Password: Password{Type: "plain", Key: &password},
+			Permissions: Permissions{name: "observe"},
+		},
+	}}
+	username := "viewer"
+	gotUsername, permissions, err := desc.GetPermission("room", ClientCredentials{
+		Username: &username, Password: password,
+	})
+	if err != nil || gotUsername != "viewer" {
+		t.Fatalf("authenticate observer: username=%q err=%v", gotUsername, err)
+	}
 	if !slices.Contains(permissions, "document") {
 		t.Fatal("observer should be allowed to view and annotate shared documents")
 	}
