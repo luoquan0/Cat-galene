@@ -1008,7 +1008,7 @@ test('chat attachments support clipboard images and group file sending', () => {
 
 
 test('screen share is the main tile and microphone-only peers are compact', () => {
-    const body = galene.match(/function resizePeers\(\) \{[\s\S]*?\n\}\n\n\/\*\*\n \* Lexicographic order/);
+    const body = galene.match(/function resizePeers\(\) \{[\s\S]*?\n\}\n\n(?=document\.addEventListener\('click')/);
     assert.ok(body, 'responsive peer layout function was not found');
     const makeClasses = () => {
         const selected = new Set();
@@ -1048,8 +1048,7 @@ test('screen share is the main tile and microphone-only peers are compact', () =
         document: {getElementById: id => nodes[id] || null},
         scheduleReconsiderDownRate: () => {},
     };
-    vm.runInNewContext(body[0].replace(/\n\n\/\*\*\n \* Lexicographic order$/, '') +
-        '\nthis.resize = resizePeers;', sandbox);
+    vm.runInNewContext(body[0] + '\nthis.resize = resizePeers;', sandbox);
     sandbox.resize();
     assert.equal(peers.classList.contains('cm-has-share'), true);
     assert.equal(share.classList.contains('cm-peer-main'), true);
