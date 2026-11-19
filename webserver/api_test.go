@@ -167,7 +167,7 @@ func TestApi(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	resp, err := do("PUT", "/galene-api/v0/.groups/test/",
+	resp, err = do("PUT", "/galene-api/v0/.groups/test/",
 		"application/json", "\"foo\"", "",
 		"{}")
 	if err != nil || resp.StatusCode != http.StatusPreconditionFailed {
