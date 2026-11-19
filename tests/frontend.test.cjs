@@ -827,7 +827,7 @@ test('admin console has complete room, user and password management forms', () =
         'delete-user', 'users-group', 'admin-identity', 'logout']) {
         assert.match(page, new RegExp('id="' + id + '"'));
     }
-    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.13"/);
+    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.14"/);
     assert.doesNotMatch(page, /\son(?:click|load|error|submit)\s*=/i);
     assert.match(source, /\/galene-api\/v0\/\.admin-session/);
     assert.match(source, /'If-None-Match'/);
@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.13/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.13/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.13/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.13/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.14/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.14/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.14/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.14/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
@@ -1215,4 +1215,23 @@ test('document cancel clears the local session and permits replacing a shared do
     assert.match(docs, /closeNav\(\)/);
     assert.match(html, /id="cm-doc-end">取消共享/);
     assert.match(html, /id="cm-doc-close" aria-label="隐藏文档预览">隐藏预览/);
+});
+
+
+test('hidden shared-document previews can be restored and documents can be zoomed locally', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const css = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    assert.match(html, /id="cm-doc-restore-bar"/);
+    assert.match(html, /id="cm-doc-restore"/);
+    for(const id of ['cm-doc-zoom-out', 'cm-doc-zoom-in',
+        'cm-doc-zoom-value', 'cm-doc-zoom-reset'])
+        assert.match(html, new RegExp('id="' + id + '"'));
+    assert.match(docs, /if\(show \|\| hasSharedDocument\)/);
+    assert.match(docs, /byId\('cm-doc-restore'\)\?\.addEventListener\('click'/);
+    assert.match(docs, /function changeDocumentZoom\(delta\)/);
+    assert.match(docs, /content\.style\.zoom = String\(documentZoom\)/);
+    assert.match(docs, /const target = pdfCanvas \|\| content/);
+    assert.match(css, /\.cm-doc-restore-bar/);
+    assert.match(css, /font: 16px\/1\.8 Arial/);
 });
