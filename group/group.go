@@ -1122,10 +1122,9 @@ var configuration struct {
 	configuration *Configuration
 }
 
-func GetConfiguration() (*Configuration, error) {
-	configuration.mu.Lock()
-	defer configuration.mu.Unlock()
-
+// getConfigurationUnlocked reads and refreshes the cached global
+// configuration. The caller must hold configuration.mu.
+func getConfigurationUnlocked() (*Configuration, error) {
 	if configuration.configuration == nil {
 		configuration.configuration = &Configuration{}
 	}
@@ -1164,8 +1163,71 @@ func GetConfiguration() (*Configuration, error) {
 		log.Printf("%v: field \"admin\" is obsolete, ignored", filename)
 		conf.Admin = nil
 	}
+	conf.modTime = fi.ModTime()
+	conf.fileSize = fi.Size()
 	configuration.configuration = &conf
 	return configuration.configuration, nil
+}
+
+func GetConfiguration() (*Configuration, error) {
+	configuration.mu.Lock()
+	defer configuration.mu.Unlock()
+	return getConfigurationUnlocked()
+}
+
+// writeConfigurationUnlocked atomically persists a global configuration.
+// The caller must hold configuration.mu.
+func writeConfigurationUnlocked(conf *Configuration) error {
+	if err := os.MkdirAll(DataDirectory, 0700); err != nil {
+		return err
+	}
+	filename := filepath.Join(DataDirectory, "config.json")
+	data, err := json.MarshalIndent(conf, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	f, err := os.CreateTemp(DataDirectory, ".config-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	ok := false
+	defer func() {
+		if !ok {
+			_ = os.Remove(tmp)
+		}
+	}()
+	if err = f.Chmod(0600); err == nil {
+		_, err = f.Write(data)
+	}
+	if err == nil {
+		err = f.Sync()
+	}
+	closeErr := f.Close()
+	if err != nil {
+		return err
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err = os.Rename(tmp, filename); err != nil {
+		return err
+	}
+	dir, openErr := os.Open(DataDirectory)
+	if openErr == nil {
+		_ = dir.Sync()
+		_ = dir.Close()
+	}
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return err
+	}
+	conf.modTime = fi.ModTime()
+	conf.fileSize = fi.Size()
+	configuration.configuration = conf
+	ok = true
+	return nil
 }
 
 // rememberBinding ties a seven-day session token to the account's current
@@ -1174,6 +1236,16 @@ func GetConfiguration() (*Configuration, error) {
 // password entered by a browser.
 func (desc *Description) rememberBinding(username, secret string) (string, bool) {
 	user, ok := desc.Users[username]
+	if !ok {
+		conf, err := GetConfiguration()
+		if err != nil {
+			return "", false
+		}
+		user, ok = conf.Users[username]
+		if ok && isGlobalAdminUser(user) {
+			ok = false
+		}
+	}
 	if !ok || user.Password.Type == "" || user.Password.Type == "wildcard" {
 		return "", false
 	}
@@ -1212,6 +1284,24 @@ func (desc *Description) getPasswordPermission(creds ClientCredentials) (Permiss
 		}
 	}
 
+	// A global account is a fallback for any meeting that does not define
+	// a room-local account with the same username. Local accounts retain
+	// precedence so existing room-specific credentials are not shadowed.
+	conf, err := GetConfiguration()
+	if err != nil {
+		return Permissions{}, err
+	}
+	if c, found := conf.Users[*creds.Username]; found && !isGlobalAdminUser(c) {
+		ok, err := c.Password.Match(creds.Password)
+		if err != nil {
+			return Permissions{}, err
+		}
+		if ok {
+			return c.Permissions, nil
+		}
+		return Permissions{}, ErrBadPassword
+	}
+
 	if desc.WildcardUser != nil {
 		ok, _ := desc.WildcardUser.Password.Match(creds.Password)
 		if ok {
@@ -1230,10 +1320,16 @@ func (g *Group) UserExists(username string) bool {
 }
 
 func (desc *Description) userExists(username string) bool {
-	if desc.Users == nil {
+	if desc.Users != nil {
+		if _, found := desc.Users[username]; found {
+			return true
+		}
+	}
+	conf, err := GetConfiguration()
+	if err != nil {
 		return false
 	}
-	_, found := desc.Users[username]
+	_, found := conf.Users[username]
 	return found
 }
 
@@ -1279,7 +1375,16 @@ func (desc *Description) GetPermission(groupname string, creds ClientCredentials
 					err: errors.New("remembered session has expired or account changed"),
 				}
 			}
-			perms = desc.Users[username].Permissions.Permissions(desc)
+			user, exists := desc.Users[username]
+			if !exists {
+				user, exists = conf.Users[username]
+			}
+			if !exists || isGlobalAdminUser(user) {
+				return "", nil, &NotAuthorisedError{
+					err: errors.New("remembered account no longer exists"),
+				}
+			}
+			perms = user.Permissions.Permissions(desc)
 		}
 		if username == "" && creds.Username != nil {
 			if desc.userExists(*creds.Username) {

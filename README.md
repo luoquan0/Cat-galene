@@ -21,8 +21,8 @@ future joiners do not receive files sent before they joined.
 ## 管理员后台与安全初始化
 
 部署或升级后，可使用 **`https://你的域名/admin.html`** 打开管理员后台，
-创建/编辑/删除会议室，创建/删除会议室成员，以及设置成员身份、重置密码。
-管理员账号为 **全局服务器管理员**，与会议室成员账号是两个不同概念。
+创建/编辑/删除会议室，管理会议室成员，以及创建服务器级 **全局账户**。
+全局账户使用同一组用户名和密码进入服务器上的所有会议室，并可统一设置普通成员、主持人、聊天成员或观察者身份。管理员账号为 **全局服务器管理员**，与全局会议账户分开保护。
 
 首次部署（**请以运行 Cat-Meet 服务的专用 Linux 用户操作**）：
 
@@ -49,6 +49,15 @@ chmod 700 data groups
 受控跳转、CSP 和输出文本化来降低注入与恶意跳转风险。
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
+
+## Cat-Meet v1.2.2-cat.12
+
+- Move document collaboration entry into the More Settings panel so it no longer occupies a standalone slot in the meeting toolbar.
+- Fix document sharing on audio-only and no-video meetings by explicitly showing the document stage even when the video container is hidden.
+- Remove duplicate document file offers; participants request the original file from the document owner once, including late joiners.
+- Add server-wide global meeting accounts managed in the admin console. The same account can enter every room; room-local accounts with the same username take precedence.
+- Protect server administrator accounts from the global meeting-account editor. Global account permissions are limited to present, op, message or observe.
+- Allow observers to participate in shared-document viewing and peer-to-peer file transfer without granting chat or media permissions.
 
 ## Cat-Meet v1.2.2-cat.11
 

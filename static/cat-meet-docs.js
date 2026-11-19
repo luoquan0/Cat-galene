@@ -151,38 +151,56 @@
         const id = (crypto.randomUUID ? crypto.randomUUID() :
             'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2));
         sharedDocumentFile = file;
-        docAction({
-            action: 'start', id, name: file.name, mime: file.type || '',
-            size: file.size,
-        });
-        // The server echoes the start event to the owner as well. Rendering
-        // immediately keeps the presenter from waiting on the websocket echo.
+        try {
+            docAction({
+                action: 'start', id, name: file.name, mime: file.type || '',
+                size: file.size,
+            });
+        } catch(error) {
+            sharedDocumentFile = null;
+            throw error;
+        }
+        // The server broadcasts session metadata. Each participant then
+        // requests the original file from the owner exactly once, including
+        // participants who join after sharing has started.
         sharedDocument = {
             id, owner: serverConnection.id, name: file.name, mime: file.type || '',
             size: file.size, editors: [], blocked: [], operations: [],
         };
         await renderDocument(file);
-        for(const peerId of Object.keys(serverConnection.users || {})) {
-            if(peerId === serverConnection.id)
-                continue;
-            try { serverConnection.sendFile(peerId, file); }
-            catch(e) { console.error('Document transfer failed', e); }
-        }
-        setDocStatus('文档已共享，正在向参会者发送原文件。');
+        setDocStatus('文档已共享，参会者正在接收原文件。');
     }
 
     function showDocStage(show) {
         const stage = byId('cm-doc-stage');
         const video = byId('expand-video');
-        if(!stage || !video)
+        const container = byId('video-container');
+        if(!stage || !video || !container)
             return;
         stage.hidden = !show;
         video.style.display = show ? 'none' : '';
+        const empty = container.querySelector('.cm-empty-stage');
+        if(empty)
+            empty.style.display = show ? 'none' : '';
         if(show) {
-            byId('video-container').classList.add('cm-document-active');
+            // Document mode must not depend on an active camera or screen
+            // stream. Audio-only meetings and single-user rooms still get a
+            // visible stage for the uploaded file.
+            if(typeof setVisibility === 'function')
+                setVisibility('video-container', true);
+            else
+                container.classList.remove('invisible');
+            container.classList.add('cm-document-active');
+            container.style.display = 'flex';
             resizeCanvas();
         } else {
-            byId('video-container').classList.remove('cm-document-active');
+            container.classList.remove('cm-document-active');
+            container.style.display = '';
+            if(typeof showVideo === 'function')
+                showVideo();
+            else if(typeof setVisibility === 'function')
+                setVisibility('video-container',
+                    byId('peers') && byId('peers').childElementCount > 0);
         }
     }
 
@@ -248,6 +266,11 @@
         if(sharedDocumentBlobUrl)
             URL.revokeObjectURL(sharedDocumentBlobUrl);
         sharedDocumentBlobUrl = URL.createObjectURL(file);
+        const download = byId('cm-doc-download');
+        if(download) {
+            download.href = sharedDocumentBlobUrl;
+            download.download = file.name;
+        }
         const download = byId('cm-doc-download');
         if(download) {
             download.href = sharedDocumentBlobUrl;
@@ -494,6 +517,11 @@
             if(sharedDocumentBlobUrl) URL.revokeObjectURL(sharedDocumentBlobUrl);
             sharedDocumentBlobUrl = null;
             operationCache.clear();
+            const download = byId('cm-doc-download');
+            if(download) {
+                download.removeAttribute('href');
+                download.removeAttribute('download');
+            }
             showDocStage(false);
             setDocStatus('文档共享已结束。');
             break;

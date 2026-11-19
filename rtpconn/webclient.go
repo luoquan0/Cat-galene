@@ -1622,6 +1622,11 @@ func handleClientMessage(c *webClient, m clientMessage) error {
 		required := "message"
 		if m.Type == "chat" && m.Kind == "caption" {
 			required = "caption"
+		} else if m.Type == "usermessage" && m.Kind == "filetransfer" &&
+			slices.Contains(c.permissions, "document") {
+			// Read-only observers may participate in shared-document
+			// peer-to-peer file transfer signalling without gaining chat.
+			required = "document"
 		}
 		if !slices.Contains(c.permissions, required) {
 			return c.error(group.UserError("not authorised"))
@@ -1682,7 +1687,8 @@ func handleClientMessage(c *webClient, m clientMessage) error {
 		if g == nil {
 			return c.error(group.UserError("join a group first"))
 		}
-		if !slices.Contains(c.permissions, "message") {
+		if !slices.Contains(c.permissions, "message") &&
+			!slices.Contains(c.permissions, "document") {
 			return c.error(group.UserError("not authorised"))
 		}
 		value, ok := m.Value.(map[string]interface{})

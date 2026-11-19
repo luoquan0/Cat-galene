@@ -636,6 +636,13 @@ function setButtonsVisibility() {
 
     setVisibility('mutebutton', !connected || canPresent);
 
+    // allow document collaboration for media presenters, chat members
+    // and read-only observers with the dedicated document permission.
+    const canDocument = !!connected &&
+        (permissions.indexOf('message') >= 0 ||
+         permissions.indexOf('document') >= 0);
+    setVisibility('cm-doc-upload', canDocument);
+
     // allow multiple shared documents
     setVisibility('sharebutton', canShare);
 

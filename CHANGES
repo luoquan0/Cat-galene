@@ -1,3 +1,20 @@
+19 November 2026: Cat-Meet v1.2.2-cat.12
+
+  * Move document collaboration into the More Settings panel.
+  * Fix the hidden video-container dependency that prevented documents from
+    appearing in audio-only or no-video meetings.
+  * Remove duplicate peer-to-peer document file offers and use one owner
+    request/response transfer flow for current and late-joining participants.
+  * Add server-wide global meeting accounts backed by data/config.json users.
+    Global credentials work across all meeting rooms; room-local same-name
+    accounts retain precedence.
+  * Add global-account create, list, role update, password reset and delete
+    operations to the authenticated admin console.
+  * Keep server administrator credentials separate and protected from the
+    global meeting-account editor.
+  * Allow observer-role participants to view and annotate shared documents and
+    complete peer-to-peer document transfers without enabling chat or media.
+
 19 November 2026: Cat-Meet v1.2.2-cat.11
 
   * Added click-to-promote for concurrent screen-share thumbnails.

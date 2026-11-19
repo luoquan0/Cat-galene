@@ -121,6 +121,52 @@ func TestApi(t *testing.T) {
 		t.Errorf("Get groups: %v", err)
 	}
 
+	// Server-wide accounts are managed separately from room-local members.
+	resp, err = do("GET", "/galene-api/v0/.global-users/", "", "", "", "")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("List global users: response=%v err=%v", resp, err)
+	}
+	resp.Body.Close()
+
+	resp, err = do("PUT", "/galene-api/v0/.global-users/alice",
+		"application/json", "", "*", `{"permissions":"present"}`)
+	if err != nil || resp.StatusCode != http.StatusCreated {
+		t.Fatalf("Create global user: response=%v err=%v", resp, err)
+	}
+	resp.Body.Close()
+
+	resp, err = do("POST", "/galene-api/v0/.global-users/alice/.password",
+		"text/plain", "", "", "global-password-123")
+	if err != nil || resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("Set global user password: response=%v err=%v", resp, err)
+	}
+	resp.Body.Close()
+
+	var globalUsers []string
+	err = getJSON("/galene-api/v0/.global-users/", &globalUsers)
+	if err != nil || !reflect.DeepEqual(globalUsers, []string{"alice"}) {
+		t.Fatalf("List global users: users=%v err=%v", globalUsers, err)
+	}
+	var globalUser group.UserDescription
+	resp, err = do("GET", "/galene-api/v0/.global-users/alice", "", "", "", "")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("Get global user: response=%v err=%v", resp, err)
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&globalUser); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if globalUser.Password.Type != "" || globalUser.Permissions.String() != "present" {
+		t.Fatalf("Global user leaked password or has wrong role: %+v", globalUser)
+	}
+
+	resp, err = do("DELETE", "/galene-api/v0/.global-users/alice",
+		"", resp.Header.Get("ETag"), "", "")
+	if err != nil || resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("Delete global user: response=%v err=%v", resp, err)
+	}
+	resp.Body.Close()
+
 	resp, err := do("PUT", "/galene-api/v0/.groups/test/",
 		"application/json", "\"foo\"", "",
 		"{}")

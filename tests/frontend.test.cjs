@@ -1149,3 +1149,33 @@ test('individual participant volume controls are local to the receiving browser'
     assert.match(docs, /applyCatMeetUserVolume/);
     assert.match(galeneSource, /applyCatMeetRemoteVolume\(c, media\)/);
 });
+
+
+test('document sharing opens the stage even without any video stream and avoids duplicate peer uploads', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    assert.match(html, /id="cm-doc-upload" class="cm-doc-open-button"/);
+    assert.doesNotMatch(html, /id="cm-doc-upload"[^>]*nav-button/);
+    assert.match(docs, /setVisibility\('video-container', true\)/);
+    assert.match(docs, /container\.classList\.add\('cm-document-active'\)/);
+    const start = docs.match(/async function startDocumentShare\(file\) \{[\s\S]*?\n    \}/);
+    assert.ok(start);
+    assert.doesNotMatch(start[0], /sendFile\(peerId, file\)/);
+    assert.match(docs, /case 'file-request':[\s\S]*?sendFile\(sourceId, sharedDocumentFile\)/);
+});
+
+test('admin console exposes global accounts separately from room-local members', () => {
+    const page = fs.readFileSync('static/admin.html', 'utf8');
+    const source = fs.readFileSync('static/admin.js', 'utf8');
+    for(const id of ['nav-global-users','global-users-view','global-user-list',
+        'create-global-user-form','edit-global-user-form',
+        'reset-global-user-password-form','delete-global-user']) {
+        assert.match(page, new RegExp('id="' + id + '"'));
+    }
+    assert.match(source, /function globalUserPath/);
+    assert.match(source, /\.global-users/);
+    assert.match(source, /function createGlobalUser/);
+    assert.match(source, /function refreshGlobalUsers/);
+    assert.match(source, /globalRoles = new Set\(\['present', 'op', 'message', 'observe'\]\)/);
+    assert.match(source, /selectView\('global-users'\)/);
+});

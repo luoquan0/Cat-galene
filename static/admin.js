@@ -5,6 +5,7 @@
     const $ = id => document.getElementById(id);
     const API = '/galene-api/v0/.groups';
     const roles = new Set(['present', 'op', 'message', 'observe', 'admin']);
+    const globalRoles = new Set(['present', 'op', 'message', 'observe']);
     const roomNamePattern = /^[\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*$/u;
     const userNamePattern = /^[\p{L}\p{N}_][\p{L}\p{N}_.-]*$/u;
     const state = {
@@ -17,6 +18,9 @@
         users: [],
         user: '',
         userEntry: null,
+        globalUsers: [],
+        globalUser: '',
+        globalUserEntry: null,
     };
 
     function validRoom(value) {
@@ -43,6 +47,9 @@
     }
     function memberPath(room, user) {
         return rootPath(room) + '/.users/' + userPath(user);
+    }
+    function globalUserPath(user) {
+        return API + '/.global-users/' + userPath(user);
     }
     function credentialValue(user, password) {
         const encoded = new TextEncoder().encode(user + ':' + password);
@@ -78,6 +85,9 @@
         state.username = '';
         state.groupEntry = null;
         state.userEntry = null;
+        state.globalUsers = [];
+        state.globalUser = '';
+        state.globalUserEntry = null;
         $('dashboard').hidden = true;
         $('login-panel').hidden = false;
         $('logout').hidden = true;
@@ -129,19 +139,27 @@
     function setReadonly() {
         $('readonly-notice').hidden = state.writable;
         $('server-status').textContent = state.writable ? '● 已连接 · 可管理' : '● 已连接 · 只读';
-        document.querySelectorAll('#dashboard form button, #delete-group, #delete-user')
+        document.querySelectorAll('#dashboard form button, #delete-group, #delete-user, #delete-global-user')
             .forEach(button => { button.disabled = !state.writable; });
     }
     function selectView(name) {
         const room = name === 'rooms';
+        const localUsers = name === 'users';
+        const globalUsers = name === 'global-users';
         $('rooms-view').hidden = !room;
-        $('users-view').hidden = room;
-        $('nav-rooms').classList.toggle('active', room);
-        $('nav-users').classList.toggle('active', !room);
-        $('nav-rooms').setAttribute('aria-current', room ? 'page' : 'false');
-        $('nav-users').setAttribute('aria-current', room ? 'false' : 'page');
-        if(!room)
+        $('users-view').hidden = !localUsers;
+        $('global-users-view').hidden = !globalUsers;
+        for(const [id, active] of [
+            ['nav-rooms', room], ['nav-users', localUsers],
+            ['nav-global-users', globalUsers],
+        ]) {
+            $(id).classList.toggle('active', active);
+            $(id).setAttribute('aria-current', active ? 'page' : 'false');
+        }
+        if(localUsers)
             refreshUsers().catch(submitError);
+        else if(globalUsers)
+            refreshGlobalUsers().catch(submitError);
     }
     function emptyList(node, message) {
         node.replaceChildren();
@@ -425,6 +443,111 @@
         await refreshUsers();
         notify('成员 ' + username + ' 已删除。');
     }
+    function renderGlobalUsers() {
+        const list = $('global-user-list');
+        list.replaceChildren();
+        let count = 0;
+        for(const username of state.globalUsers) {
+            if(!validUser(username))
+                continue;
+            count++;
+            list.append(listButton(username, '全局账户 · 可进入所有会议室',
+                state.globalUser === username,
+                () => selectGlobalUser(username).catch(submitError)));
+        }
+        if(!count)
+            emptyList(list, '还没有全局账户。可以在右侧创建一个。');
+    }
+    async function refreshGlobalUsers(preferred) {
+        state.globalUser = '';
+        state.globalUserEntry = null;
+        $('edit-global-user-panel').hidden = true;
+        const response = await api(API + '/.global-users/');
+        if(!Array.isArray(response.data))
+            throw new Error('服务器返回的全局账户列表不合法。');
+        state.globalUsers = response.data.filter(x => typeof x === 'string');
+        renderGlobalUsers();
+        if(preferred && state.globalUsers.includes(preferred))
+            await selectGlobalUser(preferred);
+    }
+    async function selectGlobalUser(username) {
+        const path = globalUserPath(username);
+        state.globalUser = username;
+        state.globalUserEntry = null;
+        const response = await api(path);
+        if(state.globalUser !== username)
+            return;
+        state.globalUserEntry = response;
+        $('edit-global-user-label').textContent = username;
+        const role = response.data.permissions;
+        $('edit-global-user-role').value = globalRoles.has(role) ? role : 'present';
+        $('reset-global-user-password').value = '';
+        $('edit-global-user-panel').hidden = false;
+        renderGlobalUsers();
+    }
+    async function createGlobalUser(event) {
+        event.preventDefault();
+        requireWritable();
+        const username = $('new-global-user-name').value.trim();
+        const password = $('new-global-user-password').value;
+        const role = $('new-global-user-role').value;
+        const path = globalUserPath(username);
+        if(!globalRoles.has(role))
+            throw new Error('全局账户身份不合法。');
+        verifyPassword(password);
+        $('new-global-user-password').value = '';
+        await api(path, {method:'PUT', data:{permissions:role}, create:true});
+        try {
+            await api(path + '/.password', {method:'POST', password});
+        } catch(error) {
+            await refreshGlobalUsers(username);
+            throw new Error('全局账户已创建，但密码设置失败。请在账户设置中重置密码：' + errorText(error));
+        }
+        $('create-global-user-form').reset();
+        await refreshGlobalUsers(username);
+        notify('已创建全局账户 ' + username + '，可使用同一账号密码进入所有会议室。');
+    }
+    async function updateGlobalUser(event) {
+        event.preventDefault();
+        requireWritable();
+        if(!state.globalUser || !state.globalUserEntry || !state.globalUserEntry.etag)
+            throw new Error('请选择全局账户。');
+        const role = $('edit-global-user-role').value;
+        if(!globalRoles.has(role))
+            throw new Error('全局账户身份不合法。');
+        const username = state.globalUser;
+        await api(globalUserPath(username), {
+            method:'PUT',
+            data:{...state.globalUserEntry.data, permissions:role},
+            etag:state.globalUserEntry.etag,
+        });
+        await selectGlobalUser(username);
+        notify('全局账户 ' + username + ' 的默认会议身份已更新。');
+    }
+    async function resetGlobalUserPassword(event) {
+        event.preventDefault();
+        requireWritable();
+        if(!state.globalUser)
+            throw new Error('请选择全局账户。');
+        const password = $('reset-global-user-password').value;
+        verifyPassword(password);
+        const username = state.globalUser;
+        $('reset-global-user-password').value = '';
+        await api(globalUserPath(username) + '/.password', {method:'POST', password});
+        notify('全局账户 ' + username + ' 的密码已重置。');
+    }
+    async function deleteGlobalUser() {
+        requireWritable();
+        if(!state.globalUser || !state.globalUserEntry || !state.globalUserEntry.etag)
+            throw new Error('请选择要删除的全局账户。');
+        const username = state.globalUser;
+        const typed = window.prompt('删除后该账号将无法进入任何会议室。请输入用户名确认：' + username);
+        if(typed !== username)
+            return;
+        await api(globalUserPath(username), {method:'DELETE', etag:state.globalUserEntry.etag});
+        await refreshGlobalUsers();
+        notify('全局账户 ' + username + ' 已删除。');
+    }
     function protect(callback) {
         return async event => {
             try {
@@ -480,6 +603,7 @@
         $('logout').addEventListener('click', showLogin);
         $('nav-rooms').addEventListener('click', () => selectView('rooms'));
         $('nav-users').addEventListener('click', () => selectView('users'));
+        $('nav-global-users').addEventListener('click', () => selectView('global-users'));
         $('refresh-groups').addEventListener('click', protect(() => refreshGroups()));
         $('create-group-form').addEventListener('submit', protect(createGroup));
         $('edit-group-form').addEventListener('submit', protect(updateGroup));
@@ -499,6 +623,10 @@
         $('edit-user-form').addEventListener('submit', protect(updateUser));
         $('reset-password-form').addEventListener('submit', protect(resetPassword));
         $('delete-user').addEventListener('click', protect(deleteUser));
+        $('create-global-user-form').addEventListener('submit', protect(createGlobalUser));
+        $('edit-global-user-form').addEventListener('submit', protect(updateGlobalUser));
+        $('reset-global-user-password-form').addEventListener('submit', protect(resetGlobalUserPassword));
+        $('delete-global-user').addEventListener('click', protect(deleteGlobalUser));
     }
     if(document.readyState === 'loading')
         document.addEventListener('DOMContentLoaded', init, {once:true});

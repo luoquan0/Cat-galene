@@ -6,8 +6,8 @@
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#111728">
   <title>Cat-Meet · 管理中心</title>
-  <link rel="stylesheet" href="/admin.css?v=1.2.2-cat.2">
-  <script src="/admin.js?v=1.2.2-cat.2" defer></script>
+  <link rel="stylesheet" href="/admin.css?v=1.2.2-cat.12">
+  <script src="/admin.js?v=1.2.2-cat.12" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -52,8 +52,9 @@
         <nav class="workspace-nav" aria-label="管理员功能">
           <span class="eyebrow">MANAGEMENT</span>
           <button class="nav-entry active" type="button" id="nav-rooms" aria-current="page">◫ <span>会议室管理</span></button>
-          <button class="nav-entry" type="button" id="nav-users">◎ <span>成员与权限</span></button>
-          <div class="sidebar-explain">所有新建成员属于某个会议室，不是全站通用账号。服务器管理员账号单独存放在 data/config.json。</div>
+          <button class="nav-entry" type="button" id="nav-users">◎ <span>会议室成员</span></button>
+          <button class="nav-entry" type="button" id="nav-global-users">◉ <span>全局账户</span></button>
+          <div class="sidebar-explain">会议室成员只属于当前会议；全局账户使用同一组账号密码进入服务器上的所有会议室。服务器管理员账号单独保护。</div>
         </nav>
         <div class="content">
           <section id="rooms-view" aria-labelledby="rooms-heading">
@@ -129,6 +130,58 @@
                 </form>
               </div>
               <button id="delete-user" type="button" class="danger">删除当前成员</button>
+            </div>
+          </section>
+          <section id="global-users-view" aria-labelledby="global-users-heading" hidden>
+            <div class="section-title">
+              <div><span class="eyebrow">GLOBAL ACCOUNTS</span><h2 id="global-users-heading">全局账户</h2>
+                <p>创建一次，即可使用相同账号密码进入服务器上的每一个会议室。</p>
+              </div>
+            </div>
+            <div class="notice">全局账户保存在服务器 data/config.json 的 users 中。会议室没有同名本地账户时，才会使用全局账户验证。服务器管理员账户不会显示在此处，也不能从这里修改。</div>
+            <div class="columns">
+              <div class="panel list-panel">
+                <div class="panel-heading"><h3>全局账户列表</h3><small>可进入所有会议室</small></div>
+                <div id="global-user-list" class="item-list" aria-label="全局账户列表"></div>
+              </div>
+              <div class="panel editor-panel">
+                <div class="panel-heading"><h3>创建全局账户</h3><small>密码必须为 12–72 字节</small></div>
+                <form id="create-global-user-form" class="form-grid">
+                  <label for="new-global-user-name">用户名</label>
+                  <input id="new-global-user-name" maxlength="64" required autocomplete="off" spellcheck="false" placeholder="例如：zhang">
+                  <label for="new-global-user-password">登录密码</label>
+                  <input id="new-global-user-password" type="password" minlength="12" required autocomplete="new-password" placeholder="至少 12 字节">
+                  <label for="new-global-user-role">默认会议身份</label>
+                  <select id="new-global-user-role">
+                    <option value="present">普通成员 · 音视频与聊天</option>
+                    <option value="op">主持人 · 可管理会议</option>
+                    <option value="message">聊天成员 · 仅发送消息</option>
+                    <option value="observe">观察者 · 只接收</option>
+                  </select>
+                  <button class="primary" type="submit">创建全局账户 ＋</button>
+                </form>
+              </div>
+            </div>
+            <div id="edit-global-user-panel" class="panel edit-panel" hidden>
+              <div class="panel-heading"><h3>全局账户设置 <span id="edit-global-user-label" class="subtle"></span></h3></div>
+              <div class="edit-user-grid">
+                <form id="edit-global-user-form" class="form-grid">
+                  <label for="edit-global-user-role">默认会议身份</label>
+                  <select id="edit-global-user-role">
+                    <option value="present">普通成员 · 音视频与聊天</option>
+                    <option value="op">主持人 · 可管理会议</option>
+                    <option value="message">聊天成员 · 仅发送消息</option>
+                    <option value="observe">观察者 · 只接收</option>
+                  </select>
+                  <button class="primary" type="submit">保存全局身份权限</button>
+                </form>
+                <form id="reset-global-user-password-form" class="form-grid">
+                  <label for="reset-global-user-password">重置全局登录密码</label>
+                  <input id="reset-global-user-password" type="password" minlength="12" autocomplete="new-password" required placeholder="新密码至少 12 字节">
+                  <button type="submit" class="secondary">重置密码</button>
+                </form>
+              </div>
+              <button id="delete-global-user" type="button" class="danger">删除全局账户</button>
             </div>
           </section>
         </div>

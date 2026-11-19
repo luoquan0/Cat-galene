@@ -241,6 +241,8 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		apiAdminSession(w, r)
+	case ".global-users":
+		apiGlobalUsersHandler(w, r, rest)
 	case ".stats":
 		if rest != "" {
 			http.NotFound(w, r)
@@ -263,6 +265,179 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func apiGlobalUsersHandler(w http.ResponseWriter, r *http.Request, pth string) {
+	if pth == "" {
+		http.NotFound(w, r)
+		return
+	}
+	if pth == "/" {
+		if apiCORS(w, r, "HEAD, GET") {
+			return
+		}
+		if !checkAdmin(w, r, "") {
+			return
+		}
+		if r.Method != "HEAD" && r.Method != "GET" {
+			methodNotAllowed(w, "HEAD, GET")
+			return
+		}
+		users, etag, err := group.GetGlobalUsers()
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		w.Header().Set("etag", etag)
+		if checkPreconditions(w, r, etag) {
+			return
+		}
+		sendJSON(w, r, users)
+		return
+	}
+	first, kind, rest := splitPath(pth)
+	if first == "" {
+		http.NotFound(w, r)
+		return
+	}
+	username := first[1:]
+	if kind == "" && rest == "" {
+		apiGlobalUserHandler(w, r, username)
+		return
+	}
+	if kind == ".password" && rest == "" {
+		apiGlobalPasswordHandler(w, r, username)
+		return
+	}
+	if !checkAdmin(w, r, "") {
+		return
+	}
+	http.NotFound(w, r)
+}
+
+func apiGlobalUserHandler(w http.ResponseWriter, r *http.Request, username string) {
+	if apiCORS(w, r, "HEAD, GET, PUT, DELETE") {
+		return
+	}
+	if !checkAdmin(w, r, "") {
+		return
+	}
+	if r.Method == "HEAD" || r.Method == "GET" {
+		user, etag, err := group.GetSanitisedGlobalUser(username)
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		w.Header().Set("etag", etag)
+		if checkPreconditions(w, r, etag) {
+			return
+		}
+		sendJSON(w, r, user)
+		return
+	}
+	if r.Method != "PUT" && r.Method != "DELETE" {
+		methodNotAllowed(w, "HEAD, GET, PUT, DELETE")
+		return
+	}
+	if !globalUserWritesEnabled(w) {
+		return
+	}
+	if r.Method == "PUT" {
+		etag, err := group.GetGlobalUserTag(username)
+		if errors.Is(err, os.ErrNotExist) {
+			etag, err = "", nil
+		} else if err != nil {
+			httpError(w, err)
+			return
+		}
+		if checkPreconditions(w, r, etag) {
+			return
+		}
+		var user group.UserDescription
+		if getJSON(w, r, &user) {
+			return
+		}
+		if err := group.UpdateGlobalUser(username, etag, &user); err != nil {
+			httpError(w, err)
+			return
+		}
+		if etag == "" {
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			w.WriteHeader(http.StatusNoContent)
+		}
+		return
+	}
+	etag, err := group.GetGlobalUserTag(username)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	if checkPreconditions(w, r, etag) {
+		return
+	}
+	if err := group.DeleteGlobalUser(username, etag); err != nil {
+		httpError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func globalUserWritesEnabled(w http.ResponseWriter) bool {
+	conf, err := group.GetConfiguration()
+	if err != nil {
+		httpError(w, err)
+		return false
+	}
+	if !conf.WritableGroups {
+		http.Error(w, "global account management requires writableGroups", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+func apiGlobalPasswordHandler(w http.ResponseWriter, r *http.Request, username string) {
+	if apiCORS(w, r, "POST, DELETE") {
+		return
+	}
+	if !checkAdmin(w, r, "") {
+		return
+	}
+	if r.Method != "POST" && r.Method != "DELETE" {
+		methodNotAllowed(w, "POST, DELETE")
+		return
+	}
+	if !globalUserWritesEnabled(w) {
+		return
+	}
+	if r.Method == "POST" {
+		body, done := getText(w, r)
+		if done {
+			return
+		}
+		if len(body) < 12 || len(body) > 72 {
+			http.Error(w, "password must be 12–72 bytes", http.StatusBadRequest)
+			return
+		}
+		key, err := bcrypt.GenerateFromPassword(body, 12)
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		hash := string(key)
+		password := group.Password{Type: "bcrypt", Key: &hash}
+		if err := group.SetGlobalUserPassword(username, password); err != nil {
+			httpError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err := group.SetGlobalUserPassword(username, group.Password{}); err != nil {
+		httpError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func apiGroupHandler(w http.ResponseWriter, r *http.Request, pth string) {

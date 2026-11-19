@@ -1649,3 +1649,54 @@ body.cm-v2-room .cm-doc-status {
         height: calc(100% - 12px);
     }
 }
+
+/* Document collaboration is a setting, not a standalone meeting control. */
+body.cm-v2-room .cm-doc-settings {
+    margin-top: 14px;
+}
+body.cm-v2-room .cm-doc-open-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid #efcbd5;
+    border-radius: 12px;
+    background: #fff0f4;
+    color: #bd637e;
+    font-weight: 700;
+    cursor: pointer;
+}
+body.cm-v2-room .cm-doc-open-button:hover {
+    border-color: #e99bb0;
+    background: #ffe7ed;
+}
+body.cm-v2-room .cm-doc-toolbar {
+    position: relative;
+    z-index: 3;
+}
+body.cm-v2-room .cm-doc-page {
+    min-height: 0;
+}
+body.cm-v2-room .cm-doc-content {
+    min-height: 600px;
+}
+body.cm-v2-room #video-container.cm-document-active {
+    display: flex !important;
+    visibility: visible;
+}
+@media (max-width: 760px) {
+    body.cm-v2-room .cm-doc-toolbar {
+        max-height: 30vh;
+        overflow-y: auto;
+    }
+    body.cm-v2-room .cm-doc-toolbar strong {
+        flex-basis: 100%;
+        max-width: none;
+    }
+    body.cm-v2-room .cm-doc-page {
+        padding: 8px;
+    }
+}

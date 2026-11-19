@@ -2,21 +2,21 @@
 <html lang="en">
   <head>
     <title>小猫会议 · Cat-Meet</title>
-    <link rel="icon" type="image/png" href="/chaofan.png?v=1.2.2-cat.11"/>
+    <link rel="icon" type="image/png" href="/chaofan.png?v=1.2.2-cat.12"/>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
-    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.11"/>
-    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.11"/>
-    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.11"/>
+    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.12"/>
+    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.12"/>
+    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.12"/>
     <link rel="author" href="https://www.irif.fr/~jch/"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/fontawesome.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/solid.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/regular.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/toastify/toastify.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/contextual/contextual.css"/>
-    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.11"/>
-    <link rel="stylesheet" type="text/css" href="/cat-meet-cute.css?v=1.2.2-cat.11"/>
+    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.12"/>
+    <link rel="stylesheet" type="text/css" href="/cat-meet-cute.css?v=1.2.2-cat.12"/>
   </head>
 
   <body class="cm-v2-room cm-prejoin">
@@ -77,12 +77,6 @@
                     <span><i class="fas fa-share-square" aria-hidden="true"></i></span>
                     <label>Share Screen</label>
                   </div>
-                </li>
-                <li>
-                  <button type="button" id="cm-doc-upload" class="nav-button nav-link cm-doc-upload">
-                    <i class="fas fa-file-alt" aria-hidden="true"></i><span class="nav-text">文档协作</span>
-                  </button>
-                  <input id="cm-doc-file" type="file" accept=".docx,.pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" hidden>
                 </li>
                 <li>
                   <div class="nav-button nav-link nav-more" id="openside">
@@ -416,6 +410,16 @@
             <label for="displayallbox">Display audio-only users</label>
           </form>
         </fieldset>
+
+        <fieldset class="cm-doc-settings">
+          <legend>文档协作</legend>
+          <p class="screenshare-hint">共享 Word、PDF、TXT 或图片，并与参会者实时协作批注。</p>
+          <button type="button" id="cm-doc-upload" class="cm-doc-open-button">
+            <i class="fas fa-file-upload" aria-hidden="true"></i>
+            选择文件并共享
+          </button>
+          <input id="cm-doc-file" type="file" accept=".docx,.pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" hidden>
+        </fieldset>
       </div>
     </div>
 
@@ -477,16 +481,16 @@
       </form>
     </dialog>
 
-    <script src="/protocol.js?v=1.2.2-cat.11" defer></script>
+    <script src="/protocol.js?v=1.2.2-cat.12" defer></script>
     <script src="/third-party/toastify/toastify.js" defer></script>
     <script src="/third-party/contextual/contextual.js" defer></script>
-    <script src="/settings.js?v=1.2.2-cat.11" defer></script>
+    <script src="/settings.js?v=1.2.2-cat.12" defer></script>
     <script src="/filter.js" defer></script>
-    <script src="/camera-test.js?v=1.2.2-cat.11" defer></script>
-    <script src="/share-zoom.js?v=1.2.2-cat.11" defer></script>
-    <script src="/galene.js?v=1.2.2-cat.11" defer></script>
-    <script src="/cat-meet-docs.js?v=1.2.2-cat.11" defer></script>
-    <script src="/cat-meet-v2.js?v=1.2.2-cat.11" defer></script>
-    <script src="/i18n.js?v=1.2.2-cat.11" defer></script>
+    <script src="/camera-test.js?v=1.2.2-cat.12" defer></script>
+    <script src="/share-zoom.js?v=1.2.2-cat.12" defer></script>
+    <script src="/galene.js?v=1.2.2-cat.12" defer></script>
+    <script src="/cat-meet-docs.js?v=1.2.2-cat.12" defer></script>
+    <script src="/cat-meet-v2.js?v=1.2.2-cat.12" defer></script>
+    <script src="/i18n.js?v=1.2.2-cat.12" defer></script>
   </body>
 </html>
