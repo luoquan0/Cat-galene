@@ -827,7 +827,7 @@ test('admin console has complete room, user and password management forms', () =
         'delete-user', 'users-group', 'admin-identity', 'logout']) {
         assert.match(page, new RegExp('id="' + id + '"'));
     }
-    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.2"/);
+    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.12"/);
     assert.doesNotMatch(page, /\son(?:click|load|error|submit)\s*=/i);
     assert.match(source, /\/galene-api\/v0\/\.admin-session/);
     assert.match(source, /'If-None-Match'/);
@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.11/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.11/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.11/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.11/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.12/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.12/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.12/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.12/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
