@@ -2228,6 +2228,9 @@ async function setMedia(c, mirror, video) {
     if(!video && media.srcObject !== c.stream)
         media.srcObject = c.stream;
 
+    if(!c.up && typeof applyCatMeetRemoteVolume === 'function')
+        applyCatMeetRemoteVolume(c, media);
+
     if(!c.up) {
         media.onfullscreenchange = function(e) {
             forceDownRate(c.id, document.fullscreenElement === media, false);
@@ -2542,6 +2545,8 @@ function updateLabelElement(label) {
     }
 }
 
+let selectedScreenShareId = null;
+
 function resizePeers() {
     if(!serverConnection)
         return;
@@ -2579,7 +2584,10 @@ function resizePeers() {
     }
 
     const shares = visuals.filter(item => item.c.label === 'screenshare');
-    const mainShare = shares[0];
+    if(!shares.some(item => item.c.localId === selectedScreenShareId))
+        selectedScreenShareId = shares.length ? shares[0].c.localId : null;
+    const mainShare = shares.find(item => item.c.localId === selectedScreenShareId) ||
+        shares[0];
     const cameras = visuals.filter(item => item !== mainShare);
     peers.classList.toggle('cm-has-share', !!mainShare);
     peers.classList.toggle('cm-no-thumbnails', cameras.length === 0);
@@ -2618,6 +2626,18 @@ function resizePeers() {
     }
     scheduleReconsiderDownRate();
 }
+
+document.addEventListener('click', event => {
+    const thumb = event.target instanceof Element ?
+        event.target.closest('#peers > .cm-peer-thumb') : null;
+    if(!thumb)
+        return;
+    const id = thumb.id.startsWith('peer-') ? thumb.id.slice(5) : '';
+    if(!id)
+        return;
+    selectedScreenShareId = id;
+    resizePeers();
+});
 
 /**
  * Lexicographic order, with case differences secondary.
@@ -3037,6 +3057,8 @@ async function gotJoined(kind, group, perms, status, data, error, message) {
         // don't discard endPoint and friends
         for(let key in status)
             groupStatus[key] = status[key];
+        if(typeof setCatMeetingDuration === 'function')
+            setCatMeetingDuration(status && status.startedAt);
         setTitle((status && status.displayName) || capitalise(group));
         displayUsername();
         setButtonsVisibility();
@@ -3342,6 +3364,9 @@ function sendFileToEveryone(file) {
 }
 
 function gotFileTransfer(f) {
+    if(typeof handleCatDocumentFileTransfer === 'function' &&
+       handleCatDocumentFileTransfer(f))
+        return;
     if(f.up && activeFileBatch) {
         const batch = activeFileBatch;
         batch.transfers.push(f);
@@ -3417,6 +3442,10 @@ function groupsBase() {
  */
 function gotUserMessage(id, dest, username, time, privileged, kind, error, message) {
     switch(kind) {
+    case 'catdoc':
+        if(typeof handleCatDocumentMessage === 'function')
+            handleCatDocumentMessage(id, username, message);
+        break;
     case 'kicked':
     case 'error':
     case 'warning':

@@ -105,6 +105,18 @@ const (
 	MaxBitrate = 1024 * 1024 * 1024
 )
 
+type SharedDocument struct {
+	ID string
+	Owner string
+	Name string
+	MIME string
+	Size int64
+	StartedAt time.Time
+	Editors map[string]bool
+	Blocked map[string]bool
+	Operations []map[string]interface{}
+}
+
 type Group struct {
 	name string
 
@@ -114,6 +126,8 @@ type Group struct {
 	clients     map[string]Client
 	history     []ChatHistoryEntry
 	timestamp   time.Time
+	startedAt   time.Time
+	document    *SharedDocument
 	data        map[string]interface{}
 }
 
@@ -170,6 +184,184 @@ func (g *Group) UpdateData(d map[string]interface{}) {
 	for _, c := range clients {
 		c.Joined(g.Name(), "change")
 	}
+}
+
+// DocumentSnapshot returns the current shared document and its annotation
+// operations. Document bytes are transferred peer-to-peer; this state contains
+// only metadata, permissions and bounded annotation data.
+func (g *Group) DocumentSnapshot() map[string]interface{} {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.documentSnapshotUnlocked()
+}
+
+func (g *Group) documentSnapshotUnlocked() map[string]interface{} {
+	d := g.document
+	if d == nil {
+		return nil
+	}
+	ops := make([]map[string]interface{}, len(d.Operations))
+	for i, op := range d.Operations {
+		ops[i] = maps.Clone(op)
+	}
+	editors := make([]string, 0, len(d.Editors))
+	for id, enabled := range d.Editors {
+		if enabled { editors = append(editors, id) }
+	}
+	blocked := make([]string, 0, len(d.Blocked))
+	for id, enabled := range d.Blocked {
+		if enabled { blocked = append(blocked, id) }
+	}
+	return map[string]interface{}{
+		"action": "snapshot",
+		"document": map[string]interface{}{
+			"id": d.ID, "owner": d.Owner, "name": d.Name,
+			"mime": d.MIME, "size": d.Size,
+			"startedAt": d.StartedAt.Format(time.RFC3339Nano),
+			"editors": editors, "blocked": blocked,
+		},
+		"operations": ops,
+	}
+}
+
+// ApplyDocumentAction validates a participant's document action while holding
+// the group lock. A non-empty destination requests a private owner notification.
+func (g *Group) ApplyDocumentAction(userID string, value map[string]interface{}) (map[string]interface{}, string, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.clients[userID] == nil {
+		return nil, "", UserError("not a participant")
+	}
+	action, _ := value["action"].(string)
+	if action == "" {
+		return nil, "", ProtocolError("missing document action")
+	}
+	d := g.document
+	switch action {
+	case "start":
+		if d != nil {
+			return nil, "", UserError("a document is already being shared")
+		}
+		id, _ := value["id"].(string)
+		name, _ := value["name"].(string)
+		mime, _ := value["mime"].(string)
+		sizeValue, ok := value["size"].(float64)
+		if !ok || id == "" || len(id) > 80 || name == "" || len(name) > 240 ||
+			sizeValue <= 0 || sizeValue > 25*1024*1024 {
+			return nil, "", ProtocolError("invalid shared document metadata")
+		}
+		switch strings.ToLower(path.Ext(name)) {
+		case ".docx", ".pdf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif":
+		default:
+			return nil, "", UserError("unsupported document type")
+		}
+		d = &SharedDocument{
+			ID: id, Owner: userID, Name: filepath.Base(name), MIME: mime,
+			Size: int64(sizeValue), StartedAt: time.Now(),
+			Editors: make(map[string]bool), Blocked: make(map[string]bool),
+		}
+		g.document = d
+		return map[string]interface{}{
+			"action": "start",
+			"document": g.documentSnapshotUnlocked()["document"],
+			"operations": []map[string]interface{}{},
+		}, "", nil
+	case "request-file":
+		if d == nil || value["docId"] != d.ID {
+			return nil, "", UserError("shared document is no longer available")
+		}
+		return map[string]interface{}{"action": "file-request", "docId": d.ID}, d.Owner, nil
+	case "annotate":
+		if d == nil || value["docId"] != d.ID {
+			return nil, "", UserError("no matching shared document")
+		}
+		if d.Blocked[userID] {
+			return nil, "", UserError("you are not allowed to annotate this document")
+		}
+		op, ok := value["operation"].(map[string]interface{})
+		if !ok { return nil, "", ProtocolError("invalid annotation operation") }
+		opID, _ := op["id"].(string)
+		tool, _ := op["tool"].(string)
+		points, ok := op["points"].([]interface{})
+		if !ok || opID == "" || len(opID) > 80 || len(points) > 1200 {
+			return nil, "", ProtocolError("invalid annotation points")
+		}
+		switch tool {
+		case "pen", "highlighter", "eraser", "rect", "ellipse", "arrow", "text":
+		default:
+			return nil, "", ProtocolError("unknown annotation tool")
+		}
+		op = maps.Clone(op)
+		op["userId"] = userID
+		found := false
+		for i, old := range d.Operations {
+			if old["id"] == opID {
+				if old["userId"] != userID && userID != d.Owner && !d.Editors[userID] {
+					return nil, "", UserError("cannot edit another participant's annotation")
+				}
+				d.Operations[i] = op
+				found = true
+				break
+			}
+		}
+		if !found {
+			if len(d.Operations) >= 3000 { return nil, "", UserError("annotation limit reached") }
+			d.Operations = append(d.Operations, op)
+		}
+		return map[string]interface{}{"action": "operation", "operation": op}, "", nil
+	case "undo":
+		if d == nil || value["docId"] != d.ID {
+			return nil, "", UserError("no matching shared document")
+		}
+		opID, _ := value["opId"].(string)
+		for i, op := range d.Operations {
+			if op["id"] != opID { continue }
+			if op["userId"] != userID && userID != d.Owner && !d.Editors[userID] {
+				return nil, "", UserError("cannot remove another participant's annotation")
+			}
+			d.Operations = append(d.Operations[:i], d.Operations[i+1:]...)
+			return map[string]interface{}{"action": "undo", "opId": opID}, "", nil
+		}
+		return nil, "", UserError("annotation not found")
+	case "clear":
+		if d == nil || value["docId"] != d.ID || (userID != d.Owner && !d.Editors[userID]) {
+			return nil, "", UserError("only the owner or an editor can clear annotations")
+		}
+		d.Operations = nil
+		return map[string]interface{}{"action": "clear", "docId": d.ID}, "", nil
+	case "grant-editor", "revoke-editor", "block-annotations", "allow-annotations":
+		if d == nil || userID != d.Owner {
+			return nil, "", UserError("only the document owner can manage permissions")
+		}
+		target, _ := value["target"].(string)
+		if target == "" || g.clients[target] == nil {
+			return nil, "", UserError("participant not found")
+		}
+		switch action {
+		case "grant-editor": d.Editors[target] = true
+		case "revoke-editor": delete(d.Editors, target)
+		case "block-annotations": d.Blocked[target] = true
+		case "allow-annotations": delete(d.Blocked, target)
+		}
+		return map[string]interface{}{
+			"action": "permissions", "target": target,
+			"editors": d.Editors[target], "blocked": d.Blocked[target],
+		}, "", nil
+	case "end":
+		if d == nil || d.ID != value["docId"] || userID != d.Owner {
+			return nil, "", UserError("only the document owner can end sharing")
+		}
+		g.document = nil
+		return map[string]interface{}{"action": "end", "docId": d.ID}, "", nil
+	default:
+		return nil, "", ProtocolError("unknown document action")
+	}
+}
+
+func (g *Group) StartedAt() time.Time {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.startedAt
 }
 
 func (g *Group) Description() *Description {
@@ -681,6 +873,7 @@ func AddClient(group string, c Client, creds ClientCredentials) (*Group, error) 
 	if g.clients[id] != nil {
 		return nil, ProtocolError("duplicate client id")
 	}
+	if len(g.clients) == 0 { g.startedAt = time.Now() }
 	g.clients[id] = c
 	g.timestamp = time.Now()
 
@@ -750,6 +943,13 @@ func DelClient(c Client) {
 	delete(g.clients, c.Id())
 	g.timestamp = time.Now()
 	clients := g.getClientsUnlocked(nil)
+	if len(clients) == 0 {
+		g.startedAt = time.Time{}
+		g.document = nil
+	} else if g.document != nil && g.document.Owner == c.Id() {
+		g.document.Owner = clients[0].Id()
+		g.document.Editors = make(map[string]bool)
+	}
 	g.mu.Unlock()
 
 	c.Joined(g.Name(), "leave")
@@ -757,6 +957,9 @@ func DelClient(c Client) {
 		cc.PushClient(
 			g.Name(), "delete", c.Id(), c.Username(), nil, nil,
 		)
+		if g.DocumentSnapshot() != nil {
+			cc.Joined(g.Name(), "change")
+		}
 	}
 	autoLockKick(g)
 }
@@ -1106,6 +1309,7 @@ func (desc *Description) GetPermission(groupname string, creds ClientCredentials
 
 type Status struct {
 	Name              string `json:"name"`
+	StartedAt         string `json:"startedAt,omitempty"`
 	Redirect          string `json:"redirect,omitempty"`
 	Location          string `json:"location,omitempty"`
 	Endpoint          string `json:"endpoint,omitempty"`
@@ -1165,6 +1369,9 @@ func (g *Group) Status(authentified bool, base *url.URL) Status {
 		Description: desc.Description,
 	}
 
+	if startedAt := g.StartedAt(); !startedAt.IsZero() {
+		d.StartedAt = startedAt.Format(time.RFC3339Nano)
+	}
 	if authentified || desc.Public {
 		// these are considered private information
 		locked, _ := g.Locked()

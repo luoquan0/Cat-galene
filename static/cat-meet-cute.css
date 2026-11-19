@@ -1356,3 +1356,296 @@ body.cm-v2-room #cm-leave-yes {
         width: 96px;
     }
 }
+
+
+/* Cat-Meet 1.2.2-cat.11: collaboration, volume controls and meeting timer. */
+body.cm-v2-room .cm-meeting-duration {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 4px 8px;
+    border: 1px solid #efdfe0;
+    border-radius: 10px;
+    color: #a17e83;
+    background: #fff8f8;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+body.cm-v2-room .cm-peer-thumb {
+    cursor: pointer;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: outline-color .15s ease, transform .15s ease;
+}
+
+body.cm-v2-room .cm-peer-thumb:hover {
+    outline-color: #ff9db4;
+    transform: scale(1.025);
+}
+
+body.cm-v2-room .cm-peer-thumb::after {
+    content: "点击切换主画面";
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    padding: 3px 6px;
+    border-radius: 7px;
+    background: rgba(24, 22, 30, .72);
+    color: #fff;
+    font-size: 10px;
+    pointer-events: none;
+}
+
+body.cm-v2-room .cm-user-volume {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
+body.cm-v2-room .cm-user-volume summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    border-radius: 9px;
+    color: #d76f8e;
+    background: #fff0f3;
+    list-style: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+body.cm-v2-room .cm-user-volume summary::-webkit-details-marker {
+    display: none;
+}
+
+body.cm-v2-room .cm-user-volume-panel {
+    position: absolute;
+    z-index: 100;
+    right: 0;
+    top: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    padding: 10px;
+    border: 1px solid #efdfe0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(80, 50, 50, .15);
+}
+
+body.cm-v2-room .cm-user-volume-panel input {
+    flex: 1;
+    min-width: 0;
+    accent-color: #ee8ba6;
+}
+
+body.cm-v2-room .cm-user-volume-value {
+    min-width: 34px;
+    color: #8f7275;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+body.cm-v2-room .cm-doc-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: #f7f2f1;
+}
+
+body.cm-v2-room .cm-doc-stage[hidden] {
+    display: none !important;
+}
+
+body.cm-v2-room .cm-doc-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eadbdb;
+    background: #fffaf8;
+    color: #674f4a;
+}
+
+body.cm-v2-room .cm-doc-toolbar strong {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+    font-size: 12px;
+}
+
+body.cm-v2-room .cm-doc-toolbar button,
+body.cm-v2-room .cm-doc-toolbar select {
+    min-height: 32px;
+    padding: 5px 8px;
+    border: 1px solid #ead9dc;
+    border-radius: 9px;
+    background: #fff;
+    color: #765c59;
+    font-size: 11px;
+}
+
+body.cm-v2-room .cm-doc-toolbar button {
+    cursor: pointer;
+}
+
+body.cm-v2-room .cm-doc-toolbar button:hover {
+    background: #fff0f4;
+    border-color: #f0bdcb;
+}
+
+body.cm-v2-room .cm-doc-toolbar input[type="color"] {
+    width: 32px;
+    height: 30px;
+    padding: 2px;
+    border: 1px solid #ead9dc;
+    border-radius: 8px;
+    background: #fff;
+}
+
+body.cm-v2-room .cm-doc-toolbar input[type="range"] {
+    width: 74px;
+    accent-color: #ed8ba5;
+}
+
+body.cm-v2-room #cm-doc-grant,
+body.cm-v2-room #cm-doc-block,
+body.cm-v2-room #cm-doc-allow,
+body.cm-v2-room #cm-doc-end {
+    display: none;
+}
+body.cm-v2-room #cm-doc-clear {
+    display: none;
+}
+
+body.cm-v2-room .cm-doc-page {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 14px;
+    background: #ece6e5;
+}
+
+body.cm-v2-room .cm-doc-content {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 1100px);
+    min-height: 100%;
+    padding: 24px;
+    background: #fff;
+    color: #2d2930;
+    box-shadow: 0 8px 28px rgba(50, 38, 42, .12);
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+body.cm-v2-room .cm-doc-content img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    margin: auto;
+    object-fit: contain;
+}
+
+body.cm-v2-room .cm-doc-content iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 70vh;
+    border: 0;
+    background: #fff;
+}
+
+body.cm-v2-room .cm-doc-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 14px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+body.cm-v2-room .cm-doc-content .cm-docx-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 14px/1.75 Arial, sans-serif;
+}
+
+body.cm-v2-room .cm-doc-canvas {
+    position: absolute;
+    z-index: 2;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 28px), 1100px);
+    height: calc(100% - 28px);
+    touch-action: none;
+    cursor: crosshair;
+}
+
+body.cm-v2-room .cm-doc-stage[data-tool="pan"] .cm-doc-canvas {
+    pointer-events: none;
+}
+
+body.cm-v2-room .cm-doc-stage[data-readonly="true"] .cm-doc-canvas {
+    pointer-events: none;
+    cursor: default;
+}
+
+body.cm-v2-room .cm-doc-status {
+    flex: 0 0 auto;
+    min-height: 22px;
+    padding: 3px 10px;
+    background: #fffaf8;
+    color: #987e7b;
+    font-size: 11px;
+}
+
+@media (max-width: 760px) {
+    body.cm-v2-room .cm-meeting-duration {
+        margin-left: 2px;
+        padding: 3px 5px;
+        font-size: 10px;
+    }
+
+    body.cm-v2-room .cm-doc-toolbar {
+        gap: 5px;
+        padding: 6px;
+    }
+
+    body.cm-v2-room .cm-doc-toolbar strong {
+        max-width: 110px;
+    }
+
+    body.cm-v2-room .cm-doc-page {
+        padding: 6px;
+    }
+
+    body.cm-v2-room .cm-doc-content {
+        padding: 12px;
+    }
+
+    body.cm-v2-room .cm-doc-canvas {
+        top: 6px;
+        width: calc(100% - 12px);
+        height: calc(100% - 12px);
+    }
+}

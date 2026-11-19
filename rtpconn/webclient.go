@@ -1196,6 +1196,25 @@ func handleAction(c *webClient, a any) error {
 		if err != nil {
 			return err
 		}
+		if g != nil {
+			if snapshot := g.DocumentSnapshot(); snapshot != nil {
+				var owner string
+				if doc, ok := snapshot["document"].(map[string]interface{}); ok {
+					owner, _ = doc["owner"].(string)
+				}
+				username := ""
+				if ownerClient := g.GetClient(owner); ownerClient != nil {
+					username = ownerClient.Username()
+				}
+				err := c.write(clientMessage{
+					Type: "usermessage", Kind: "catdoc", Source: owner,
+					Username: &username, Value: snapshot,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
 		if a.kind == "join" {
 			if g == nil {
 				log.Println("g is null when joining" +
@@ -1658,6 +1677,39 @@ func handleClientMessage(c *webClient, m clientMessage) error {
 			}
 			ccc.write(mm)
 		}
+	case "document":
+		g := c.group
+		if g == nil {
+			return c.error(group.UserError("join a group first"))
+		}
+		if !slices.Contains(c.permissions, "message") {
+			return c.error(group.UserError("not authorised"))
+		}
+		value, ok := m.Value.(map[string]interface{})
+		if !ok {
+			return group.ProtocolError("invalid document action")
+		}
+		event, dest, err := g.ApplyDocumentAction(c.Id(), value)
+		if err != nil {
+			return c.error(err)
+		}
+		message := clientMessage{
+			Type: "usermessage", Kind: "catdoc", Source: c.Id(),
+			Username: &c.username, Time: time.Now().Format(time.RFC3339),
+			Value: event,
+		}
+		if dest != "" {
+			target := g.GetClient(dest)
+			if target == nil {
+				return c.error(group.UserError("document owner is no longer present"))
+			}
+			client, ok := target.(*webClient)
+			if !ok {
+				return c.error(group.UserError("document owner cannot receive messages"))
+			}
+			return client.write(message)
+		}
+		return broadcast(g.GetClients(nil), message)
 	case "groupaction":
 		g := c.group
 		if g == nil {

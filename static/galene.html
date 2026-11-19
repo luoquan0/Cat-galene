@@ -2,21 +2,21 @@
 <html lang="en">
   <head>
     <title>小猫会议 · Cat-Meet</title>
-    <link rel="icon" type="image/png" href="/chaofan.png?v=1.2.2-cat.10"/>
+    <link rel="icon" type="image/png" href="/chaofan.png?v=1.2.2-cat.11"/>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
-    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.10"/>
-    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.10"/>
-    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.10"/>
+    <link rel="stylesheet" type="text/css" href="/common.css?v=1.2.2-cat.11"/>
+    <link rel="stylesheet" type="text/css" href="/galene.css?v=1.2.2-cat.11"/>
+    <link rel="stylesheet" href="/cat-meet-v2.css?v=1.2.2-cat.11"/>
     <link rel="author" href="https://www.irif.fr/~jch/"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/fontawesome.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/solid.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/fontawesome/css/regular.min.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/toastify/toastify.css"/>
     <link rel="stylesheet" type="text/css" href="/third-party/contextual/contextual.css"/>
-    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.10"/>
-    <link rel="stylesheet" type="text/css" href="/cat-meet-cute.css?v=1.2.2-cat.10"/>
+    <link rel="stylesheet" type="text/css" href="/cat-meet-pro.css?v=1.2.2-cat.11"/>
+    <link rel="stylesheet" type="text/css" href="/cat-meet-cute.css?v=1.2.2-cat.11"/>
   </head>
 
   <body class="cm-v2-room cm-prejoin">
@@ -43,7 +43,7 @@
                 <div class="cm-meeting-brand" aria-label="Cat-Meet">
                   <img class="cm-meeting-brand-logo" src="/chaofan.png" alt="小猫会议"><strong>Cat-Meet</strong>
                 </div><span class="cm-top-divider" aria-hidden="true"></span>
-                <h1 id="title" class="header-title">Cat-Meet</h1>
+                <h1 id="title" class="header-title">Cat-Meet</h1><span id="cm-meeting-duration" class="cm-meeting-duration" aria-label="Meeting duration">00:00:00</span>
                 <label for="language-select" class="language-label">Language</label><select id="language-select" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
               </div>
 
@@ -77,6 +77,12 @@
                     <span><i class="fas fa-share-square" aria-hidden="true"></i></span>
                     <label>Share Screen</label>
                   </div>
+                </li>
+                <li>
+                  <button type="button" id="cm-doc-upload" class="nav-button nav-link cm-doc-upload">
+                    <i class="fas fa-file-alt" aria-hidden="true"></i><span class="nav-text">文档协作</span>
+                  </button>
+                  <input id="cm-doc-file" type="file" accept=".docx,.pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" hidden>
                 </li>
                 <li>
                   <div class="nav-button nav-link nav-more" id="openside">
@@ -128,6 +134,38 @@
                 <div id="expand-video" class="expand-video">
                   <div id="peers"></div>
                 </div>
+                <section id="cm-doc-stage" class="cm-doc-stage" hidden aria-label="Shared document">
+                  <div class="cm-doc-toolbar">
+                    <strong id="cm-doc-title">共享文档</strong>
+                    <select id="cm-doc-tool" aria-label="批注工具">
+                      <option value="pen">画笔</option>
+                      <option value="highlighter">荧光笔</option>
+                      <option value="text">文字</option>
+                      <option value="rect">矩形</option>
+                      <option value="ellipse">圆形</option>
+                      <option value="arrow">箭头</option>
+                      <option value="eraser">橡皮擦</option>
+                      <option value="pan">浏览 / 翻页</option>
+                    </select>
+                    <input id="cm-doc-color" type="color" value="#ef477d" aria-label="批注颜色">
+                    <input id="cm-doc-width" type="range" min="1" max="14" value="3" aria-label="画笔粗细">
+                    <button type="button" id="cm-doc-undo">撤销</button>
+                    <button type="button" id="cm-doc-redo">重做</button>
+                    <button type="button" id="cm-doc-clear">清空批注</button>
+                    <select id="cm-doc-member" aria-label="选择参会者"></select>
+                    <button type="button" id="cm-doc-grant">授权编辑</button>
+                    <button type="button" id="cm-doc-block">禁止批注</button>
+                    <button type="button" id="cm-doc-allow">允许批注</button>
+                    <a id="cm-doc-download" class="cm-doc-download" download>下载原文件</a>
+                    <button type="button" id="cm-doc-end">结束共享</button>
+                    <button type="button" id="cm-doc-close" aria-label="关闭文档">收起</button>
+                  </div>
+                  <div id="cm-doc-page" class="cm-doc-page">
+                    <div id="cm-doc-content" class="cm-doc-content"></div>
+                    <canvas id="cm-doc-canvas" class="cm-doc-canvas"></canvas>
+                  </div>
+                  <div id="cm-doc-status" class="cm-doc-status" aria-live="polite"></div>
+                </section>
                 <div class="cm-empty-stage" aria-hidden="true">
                   <img class="cm-wait-logo" src="/chaofan.png" alt="">
                   <h2>Ready when you are</h2>
@@ -439,15 +477,16 @@
       </form>
     </dialog>
 
-    <script src="/protocol.js?v=1.2.2-cat.10" defer></script>
+    <script src="/protocol.js?v=1.2.2-cat.11" defer></script>
     <script src="/third-party/toastify/toastify.js" defer></script>
     <script src="/third-party/contextual/contextual.js" defer></script>
-    <script src="/settings.js?v=1.2.2-cat.10" defer></script>
+    <script src="/settings.js?v=1.2.2-cat.11" defer></script>
     <script src="/filter.js" defer></script>
-    <script src="/camera-test.js?v=1.2.2-cat.10" defer></script>
-    <script src="/share-zoom.js?v=1.2.2-cat.10" defer></script>
-    <script src="/galene.js?v=1.2.2-cat.10" defer></script>
-    <script src="/cat-meet-v2.js?v=1.2.2-cat.10" defer></script>
-    <script src="/i18n.js?v=1.2.2-cat.10" defer></script>
+    <script src="/camera-test.js?v=1.2.2-cat.11" defer></script>
+    <script src="/share-zoom.js?v=1.2.2-cat.11" defer></script>
+    <script src="/galene.js?v=1.2.2-cat.11" defer></script>
+    <script src="/cat-meet-docs.js?v=1.2.2-cat.11" defer></script>
+    <script src="/cat-meet-v2.js?v=1.2.2-cat.11" defer></script>
+    <script src="/i18n.js?v=1.2.2-cat.11" defer></script>
   </body>
 </html>

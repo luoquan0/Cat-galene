@@ -50,6 +50,7 @@ jobs:
           node --check static/mainpage.js
           node --check static/cat-meet-v2.js
           node --check static/galene.js
+          node --check static/cat-meet-docs.js
           node --check static/protocol.js
           node --check static/share-zoom.js
           node --check static/i18n.js
@@ -62,7 +63,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.10]'))
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.11]'))
     needs: verify
     permissions:
       contents: write
@@ -83,7 +84,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.2-cat.10" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.2-cat.11" >> "${GITHUB_ENV}"
           fi
 
       - name: Build Linux server packages
@@ -119,7 +120,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.2-cat.10 · cute responsive UI + chat attachments.
+          Cat-Meet v1.2.2-cat.11 · cute responsive UI + chat attachments.
 
           - Keeps the microphone auto-recovery and device reliability fixes from v1.2.2-cat.4.
           - Display account/password login immediately on room navigation; wait for room metadata before submit.
@@ -145,6 +146,9 @@ jobs:
           - Fixed the logo URL by packaging chaofan.png inside static/.
           - Moved chat into a left-side slide-in drawer with close button, backdrop and Escape handling.
           - Kept the video and screen-share stage full-width and centered; the participant drawer overlays instead of shrinking it.
+          - Added click-to-promote between concurrent screen shares and a server-synchronised meeting duration.
+          - Added collaborative DOCX/PDF/TXT/image viewing with real-time annotations, owner/editor permissions and peer-to-peer file delivery.
+          - Added per-participant local receive-volume sliders.
           - Linux amd64/arm64 server packages and SHA256 checksums.
 
           See CHANGES and README for details.

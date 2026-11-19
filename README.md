@@ -50,6 +50,15 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.11
+
+- Click a second participant's screen-share thumbnail to promote it to the main stage without renegotiating the media connection.
+- Show a shared meeting timer using the server's group start time.
+- Add shared DOCX, PDF, TXT and image documents with real-time pen, highlighter, text, rectangle, ellipse, arrow and eraser annotations. Original files are delivered peer-to-peer; annotation state and permissions are relayed by the meeting server.
+- The uploader is the document owner. Participants may annotate by default; the owner can grant editor privileges, restrict annotations, clear marks and end sharing. Editors can manage annotations but cannot end the owner's session.
+- Add independent local receive-volume controls for each participant. Volume changes affect only the local listener and are stored in that browser.
+- Document uploads are limited to 25 MiB. PDF uses the browser's native PDF viewer with an overlay annotation layer; DOCX is rendered as extracted document text, while TXT and image files are displayed directly.
+
 ## Cat-Meet v1.2.2-cat.10
 
 - Exit confirmation dialog for both the main leave button and settings logout, with best-effort mobile Back-gesture and page-close guards.

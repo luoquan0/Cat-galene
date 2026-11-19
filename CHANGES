@@ -1,3 +1,13 @@
+19 November 2026: Cat-Meet v1.2.2-cat.11
+
+  * Added click-to-promote for concurrent screen-share thumbnails.
+  * Added a meeting duration clock driven by the server's group start time.
+  * Added shared document sessions for DOCX, PDF, TXT and images with
+    collaborative annotation tools and server-validated owner/editor permissions.
+  * Added per-participant local receive-volume controls.
+  * Document files are peer-to-peer; annotation state is relayed and bounded
+    on the server. PDF uses the browser's native viewer and DOCX text extraction.
+
 18 November 2026: Cat-Meet v1.2.2-cat.10
 
   * Added leave confirmation plus best-effort mobile back-navigation guard.

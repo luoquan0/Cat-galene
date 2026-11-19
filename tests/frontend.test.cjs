@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.10/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.10/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.10/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.10/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.11/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.11/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.11/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.11/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
@@ -1111,4 +1111,41 @@ test('leaving a meeting requires confirmation and mobile back navigation is guar
     assert.match(bridge, /window\.addEventListener\('popstate'/);
     assert.match(bridge, /window\.addEventListener\('beforeunload'/);
     assert.match(bridge, /history\.pushState/);
+});
+
+
+test('meeting timer and screen-share thumbnail promotion are wired', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.match(html, /id="cm-meeting-duration"/);
+    assert.match(galene, /selectedScreenShareId/);
+    assert.match(galene, /closest\('#peers > \.cm-peer-thumb'\)/);
+    assert.match(galene, /setCatMeetingDuration\(status && status\.startedAt\)/);
+    assert.match(fs.readFileSync('group/group.go', 'utf8'), /StartedAt\s+string `json:"startedAt/);
+});
+
+test('shared document collaboration controls, file formats and server permission actions exist', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const server = fs.readFileSync('rtpconn/webclient.go', 'utf8');
+    const group = fs.readFileSync('group/group.go', 'utf8');
+    assert.match(html, /id="cm-doc-upload"/);
+    assert.match(html, /accept="\.docx,\.pdf,\.txt/);
+    assert.match(html, /id="cm-doc-canvas"/);
+    assert.match(docs, /DecompressionStream\('deflate-raw'\)/);
+    assert.match(docs, /type === 'pdf'/);
+    assert.match(docs, /type === 'docx'/);
+    assert.match(docs, /function handleCatDocumentMessage/);
+    assert.match(server, /case "document":/);
+    assert.match(group, /ApplyDocumentAction/);
+    assert.match(group, /grant-editor/);
+    assert.match(group, /block-annotations/);
+});
+
+test('individual participant volume controls are local to the receiving browser', () => {
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const galeneSource = fs.readFileSync('static/galene.js', 'utf8');
+    assert.match(docs, /cm-user-volume/);
+    assert.match(docs, /localStorage\.setItem\(volumePrefix/);
+    assert.match(docs, /applyCatMeetUserVolume/);
+    assert.match(galeneSource, /applyCatMeetRemoteVolume\(c, media\)/);
 });

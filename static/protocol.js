@@ -821,6 +821,21 @@ ServerConnection.prototype.userMessage = function(kind, dest, value, noecho) {
  * @param {string} kind
  * @param {any} [data]
  */
+ServerConnection.prototype.documentAction = function(value) {
+    this.send({
+        type: 'document',
+        source: this.id,
+        username: this.username,
+        value: value,
+    });
+};
+
+/**
+ * groupAction sends a request to act on the current group.
+ *
+ * @param {string} kind
+ * @param {any} [data]
+ */
 ServerConnection.prototype.groupAction = function(kind, data) {
     this.send({
         type: 'groupaction',
