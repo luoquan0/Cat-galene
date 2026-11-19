@@ -50,6 +50,15 @@ chmod 700 data groups
 当前使用 JSON 文件存储会议室和成员，**没有 SQL 数据库，因此没有 SQL 查询注入入口**。
 但不存在能保证所有网页攻击都被彻底消除的单一防护措施。
 
+## Cat-Meet v1.2.2-cat.13
+
+- Bundle PDF.js and its matching worker locally so PDF previews do not depend on the browser's built-in PDF plugin. Render pages directly in the document stage, support previous/next page navigation, and keep annotations attached to the current PDF page.
+- Add a clear **取消共享** action that ends the server-side document session and immediately clears local document state, object URLs, PDF render tasks, annotation history and file input state.
+- Allow the document owner to replace an existing shared document after confirmation. Closing the preview is labelled **隐藏预览** and is distinct from ending the shared session.
+- Close the Settings drawer after selecting a document so the shared document stage is not hidden behind the upload panel.
+- Handle received file Blobs without relying on a File.name property; use the shared document metadata for the original name and format.
+- If local preview fails, cancel the just-started document session and release the lock so another file can be selected.
+
 ## Cat-Meet v1.2.2-cat.12
 
 - Move document collaboration entry into the More Settings panel so it no longer occupies a standalone slot in the meeting toolbar.

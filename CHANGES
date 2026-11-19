@@ -1,3 +1,18 @@
+19 November 2026: Cat-Meet v1.2.2-cat.13
+
+  * Bundle PDF.js and its matching worker for reliable multi-page PDF preview.
+  * Add previous/next PDF page controls and page-specific annotation rendering.
+  * Fix received PDF/document Blob naming so remote participants can render the
+    shared file using the original filename and MIME type from session metadata.
+  * Add explicit document-share cancellation that clears server session state,
+    local document state, object URLs, PDF render tasks and file selection.
+  * Allow owners to replace an active document after confirmation.
+  * Distinguish hiding the document preview from cancelling the shared session.
+  * Close the Settings drawer after a file is selected so the document stage is
+    visible immediately.
+  * Automatically end a newly started share when local preview initialization
+    fails, preventing a stale room lock.
+
 19 November 2026: Cat-Meet v1.2.2-cat.12
 
   * Move document collaboration into the More Settings panel.

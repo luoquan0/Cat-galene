@@ -1179,3 +1179,40 @@ test('admin console exposes global accounts separately from room-local members',
     assert.match(source, /globalRoles = new Set\(\['present', 'op', 'message', 'observe'\]\)/);
     assert.match(source, /selectView\('global-users'\)/);
 });
+
+
+test('PDF documents use bundled PDF.js with page navigation and page-aligned annotations', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const css = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    const pdfjs = fs.readFileSync('static/pdfjs/pdf.min.js', 'utf8');
+    const worker = fs.readFileSync('static/pdfjs/pdf.worker.min.js', 'utf8');
+    assert.match(html, /pdfjs\/pdf\.min\.js/);
+    assert.match(html, /id="cm-doc-pdf-nav"/);
+    assert.match(html, /id="cm-doc-pdf-prev"/);
+    assert.match(html, /id="cm-doc-pdf-next"/);
+    assert.match(docs, /pdfjsLib\.getDocument/);
+    assert.match(docs, /pdf\.worker\.min\.js/);
+    assert.match(docs, /function renderPdfPage/);
+    assert.match(docs, /function changePdfPage/);
+    assert.match(docs, /op\.page !== pdfPageNumber/);
+    assert.match(css, /cm-doc-content\.cm-doc-pdf/);
+    assert.ok(pdfjs.length > 100000);
+    assert.ok(worker.length > 500000);
+});
+
+test('document cancel clears the local session and permits replacing a shared document', () => {
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    assert.match(docs, /function clearLocalDocument/);
+    assert.match(docs, /sharedDocument = null/);
+    assert.match(docs, /sharedDocumentFile = null/);
+    assert.match(docs, /URL\.revokeObjectURL\(sharedDocumentBlobUrl\)/);
+    assert.match(docs, /function endDocumentShare/);
+    assert.match(docs, /endDocumentShare\('文档共享已取消/);
+    assert.match(docs, /结束旧文档并改为共享新文件吗/);
+    assert.match(docs, /file\.addEventListener\('cancel'/);
+    assert.match(docs, /closeNav\(\)/);
+    assert.match(html, /id="cm-doc-end">取消共享/);
+    assert.match(html, /id="cm-doc-close" aria-label="隐藏文档预览">隐藏预览/);
+});

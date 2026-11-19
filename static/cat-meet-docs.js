@@ -8,6 +8,9 @@
     let sharedDocument = null;
     let sharedDocumentFile = null;
     let sharedDocumentBlobUrl = null;
+    let pdfDocument = null;
+    let pdfPageNumber = 1;
+    let pdfRenderTask = null;
     let activeOperation = null;
     let undoStack = [];
     let redoStack = [];
@@ -70,6 +73,60 @@
         }, value));
     }
 
+    function clearLocalDocument(message, expectedId) {
+        if(expectedId && sharedDocument && sharedDocument.id !== expectedId)
+            return false;
+        if(pdfRenderTask) {
+            try { pdfRenderTask.cancel(); } catch(e) {}
+            pdfRenderTask = null;
+        }
+        pdfDocument = null;
+        pdfPageNumber = 1;
+        sharedDocument = null;
+        sharedDocumentFile = null;
+        activeOperation = null;
+        undoStack = [];
+        redoStack = [];
+        operationCache.clear();
+        if(sharedDocumentBlobUrl) {
+            URL.revokeObjectURL(sharedDocumentBlobUrl);
+            sharedDocumentBlobUrl = null;
+        }
+        const content = byId('cm-doc-content');
+        if(content) {
+            content.replaceChildren();
+            content.classList.remove('cm-doc-pdf');
+        }
+        const download = byId('cm-doc-download');
+        if(download) {
+            download.removeAttribute('href');
+            download.removeAttribute('download');
+        }
+        const pdfNav = byId('cm-doc-pdf-nav');
+        if(pdfNav) pdfNav.hidden = true;
+        const input = byId('cm-doc-file');
+        if(input) input.value = '';
+        showDocStage(false);
+        setDocStatus(message || '当前没有共享文档。');
+        return true;
+    }
+
+    function endDocumentShare(message) {
+        if(!sharedDocument) {
+            clearLocalDocument(message);
+            return;
+        }
+        const docId = sharedDocument.id;
+        if(currentDocOwner()) {
+            try {
+                docAction({action:'end', docId});
+            } catch(e) {
+                console.warn('Could not notify the meeting that document sharing ended', e);
+            }
+        }
+        clearLocalDocument(message || '文档共享已结束。', docId);
+    }
+
     function setDocStatus(message) {
         const status = byId('cm-doc-status');
         if(status) status.textContent = message || '';
@@ -124,7 +181,8 @@
     }
 
     function docFileType(file) {
-        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const fileName = safeText(file && file.name) || safeText(sharedDocument && sharedDocument.name);
+        const ext = (fileName.split('.').pop() || '').toLowerCase();
         if(['png','jpg','jpeg','webp','gif'].includes(ext)) return 'image';
         if(ext === 'pdf') return 'pdf';
         if(ext === 'docx') return 'docx';
@@ -145,30 +203,35 @@
             return;
         }
         if(sharedDocument) {
-            displayError('当前会议已有共享文档，请先结束当前共享。');
-            return;
+            if(!currentDocOwner()) {
+                displayError('当前文档由其他参会者主持，请让文档上传者先结束共享。');
+                return;
+            }
+            if(!window.confirm('当前文档仍在共享。结束旧文档并改为共享新文件吗？'))
+                return;
+            endDocumentShare('正在替换共享文档…');
         }
+        if(typeof closeNav === 'function')
+            closeNav();
         const id = (crypto.randomUUID ? crypto.randomUUID() :
             'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2));
         sharedDocumentFile = file;
+        sharedDocument = {
+            id, owner: serverConnection.id, name: file.name, mime: file.type || '',
+            size: file.size, editors: [], blocked: [], operations: [],
+        };
         try {
             docAction({
                 action: 'start', id, name: file.name, mime: file.type || '',
                 size: file.size,
             });
+            await renderDocument(file);
+            setDocStatus('文档已共享，参会者可以接收原文件并实时批注。');
         } catch(error) {
-            sharedDocumentFile = null;
+            try { docAction({action:'end', docId:id}); } catch(e) {}
+            clearLocalDocument('文档预览失败，已取消本次共享；可以重新选择文件。', id);
             throw error;
         }
-        // The server broadcasts session metadata. Each participant then
-        // requests the original file from the owner exactly once, including
-        // participants who join after sharing has started.
-        sharedDocument = {
-            id, owner: serverConnection.id, name: file.name, mime: file.type || '',
-            size: file.size, editors: [], blocked: [], operations: [],
-        };
-        await renderDocument(file);
-        setDocStatus('文档已共享，参会者正在接收原文件。');
     }
 
     function showDocStage(show) {
@@ -256,41 +319,117 @@
         }).join('\n');
     }
 
+    async function renderPdfPage() {
+        if(!pdfDocument)
+            return;
+        const canvas = byId('cm-doc-pdf-render');
+        const pageContainer = byId('cm-doc-page');
+        if(!canvas || !pageContainer)
+            return;
+        if(pdfRenderTask) {
+            try { pdfRenderTask.cancel(); } catch(e) {}
+            pdfRenderTask = null;
+        }
+        const pdfPage = await pdfDocument.getPage(pdfPageNumber);
+        const baseViewport = pdfPage.getViewport({scale:1});
+        const availableWidth = Math.max(240, pageContainer.clientWidth - 56);
+        const availableHeight = Math.max(240, pageContainer.clientHeight - 56);
+        const scale = Math.min(availableWidth / baseViewport.width,
+            availableHeight / baseViewport.height, 2);
+        const viewport = pdfPage.getViewport({scale});
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+        canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
+        canvas.style.width = Math.floor(viewport.width) + 'px';
+        canvas.style.height = Math.floor(viewport.height) + 'px';
+        const context = canvas.getContext('2d', {alpha:false});
+        const renderViewport = pdfPage.getViewport({scale:scale * outputScale});
+        pdfRenderTask = pdfPage.render({
+            canvasContext: context,
+            viewport: renderViewport,
+            background: '#ffffff',
+        });
+        await pdfRenderTask.promise;
+        pdfRenderTask = null;
+        const counter = byId('cm-doc-pdf-page');
+        const previous = byId('cm-doc-pdf-prev');
+        const next = byId('cm-doc-pdf-next');
+        if(counter) counter.textContent = pdfPageNumber + ' / ' + pdfDocument.numPages;
+        if(previous) previous.disabled = pdfPageNumber <= 1;
+        if(next) next.disabled = pdfPageNumber >= pdfDocument.numPages;
+        resizeCanvas();
+        redrawAnnotations();
+    }
+
+    async function changePdfPage(delta) {
+        if(!pdfDocument)
+            return;
+        const target = Math.max(1, Math.min(pdfDocument.numPages, pdfPageNumber + delta));
+        if(target === pdfPageNumber)
+            return;
+        pdfPageNumber = target;
+        await renderPdfPage();
+    }
+
     async function renderDocument(file) {
         const content = byId('cm-doc-content');
         const title = byId('cm-doc-title');
         if(!content || !file)
             return;
+        if(pdfRenderTask) {
+            try { pdfRenderTask.cancel(); } catch(e) {}
+            pdfRenderTask = null;
+        }
+        pdfDocument = null;
+        pdfPageNumber = 1;
+        const fileName = safeText(file.name) || safeText(sharedDocument && sharedDocument.name) || '共享文档';
         content.replaceChildren();
-        title.textContent = file.name;
+        content.classList.remove('cm-doc-pdf');
+        title.textContent = fileName;
         if(sharedDocumentBlobUrl)
             URL.revokeObjectURL(sharedDocumentBlobUrl);
         sharedDocumentBlobUrl = URL.createObjectURL(file);
         const download = byId('cm-doc-download');
         if(download) {
             download.href = sharedDocumentBlobUrl;
-            download.download = file.name;
+            download.download = fileName;
         }
+        const pdfNav = byId('cm-doc-pdf-nav');
+        if(pdfNav) pdfNav.hidden = true;
         const type = docFileType(file);
         if(type === 'image') {
             const image = document.createElement('img');
             image.src = sharedDocumentBlobUrl;
-            image.alt = file.name;
+            image.alt = fileName;
             content.appendChild(image);
         } else if(type === 'pdf') {
-            const frame = document.createElement('iframe');
-            frame.title = file.name;
-            frame.src = sharedDocumentBlobUrl + '#toolbar=0&navpanes=0';
-            frame.setAttribute('loading','lazy');
-            content.appendChild(frame);
-            setDocStatus('PDF 使用浏览器内置阅读器；切换“浏览 / 翻页”可滚动页面，选择批注工具可在当前视图上标注。');
+            if(!window.pdfjsLib)
+                throw new Error('PDF 阅读组件尚未加载，请刷新页面后重试。');
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js?v=1.2.2-cat.13';
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            const loadingTask = window.pdfjsLib.getDocument({
+                data: bytes,
+                isEvalSupported: false,
+                useWorkerFetch: false,
+            });
+            pdfDocument = await loadingTask.promise;
+            pdfPageNumber = 1;
+            content.classList.add('cm-doc-pdf');
+            const canvas = document.createElement('canvas');
+            canvas.id = 'cm-doc-pdf-render';
+            canvas.className = 'cm-doc-pdf-render';
+            canvas.setAttribute('aria-label', 'PDF 页面预览');
+            content.appendChild(canvas);
+            if(pdfNav) pdfNav.hidden = pdfDocument.numPages <= 1;
+            showDocStage(true);
+            await renderPdfPage();
+            setDocStatus('PDF 已加载：使用上一页 / 下一页浏览，画笔工具可在当前页实时批注。');
         } else if(type === 'docx') {
             const text = await extractDocxText(file);
             const article = document.createElement('article');
             article.className = 'cm-docx-text';
             article.textContent = text;
             content.appendChild(article);
-            setDocStatus('Word 文档已提取正文供协作批注；原始 DOCX 文件可下载。复杂排版和嵌入对象不在网页预览中重排。');
         } else {
             const pre = document.createElement('pre');
             pre.textContent = await file.text();
@@ -307,16 +446,27 @@
         const page = byId('cm-doc-page');
         if(!canvas || !page)
             return;
-        const width = Math.max(1, page.clientWidth - 28);
-        const height = Math.max(1, page.clientHeight - 28);
-        const ratio = window.devicePixelRatio || 1;
+        const pdfCanvas = byId('cm-doc-pdf-render');
+        const pageRect = page.getBoundingClientRect();
+        const targetRect = pdfCanvas && pdfCanvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const width = targetRect && targetRect.width > 0 ?
+            targetRect.width : Math.max(1, page.clientWidth - 28);
+        const height = targetRect && targetRect.height > 0 ?
+            targetRect.height : Math.max(1, page.clientHeight - 28);
         canvas.width = Math.round(width * ratio);
         canvas.height = Math.round(height * ratio);
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
-        canvas.style.top = '14px';
-        canvas.style.left = '50%';
-        canvas.style.transform = 'translateX(-50%)';
+        if(targetRect && targetRect.width > 0) {
+            canvas.style.top = (targetRect.top - pageRect.top + page.scrollTop) + 'px';
+            canvas.style.left = (targetRect.left - pageRect.left + page.scrollLeft) + 'px';
+            canvas.style.transform = 'none';
+        } else {
+            canvas.style.top = '14px';
+            canvas.style.left = '50%';
+            canvas.style.transform = 'translateX(-50%)';
+        }
         canvasContext = canvas.getContext('2d');
         canvasContext.setTransform(ratio,0,0,ratio,0,0);
         redrawAnnotations();
@@ -332,6 +482,8 @@
 
     function drawOperation(ctx, op, width, height) {
         if(!op || !Array.isArray(op.points) || !op.points.length)
+            return;
+        if(pdfDocument && op.page && op.page !== pdfPageNumber)
             return;
         const points = op.points.map(p => ({x:p.x*width,y:p.y*height}));
         const tool = op.tool;
@@ -407,7 +559,8 @@
                 if(!text) return;
                 activeOperation = {
                     id: crypto.randomUUID(), tool, color: byId('cm-doc-color').value,
-                    width: Number(byId('cm-doc-width').value), points:[point], text,
+                    width: Number(byId('cm-doc-width').value), points:[point],
+                    page: pdfDocument ? pdfPageNumber : 1, text,
                 };
                 drawOperation(canvasContext,activeOperation,canvas.clientWidth,canvas.clientHeight);
                 sendOperation(activeOperation);
@@ -417,6 +570,7 @@
             activeOperation = {
                 id: crypto.randomUUID(), tool, color: byId('cm-doc-color').value,
                 width: Number(byId('cm-doc-width').value), points:[point],
+                page: pdfDocument ? pdfPageNumber : 1,
             };
             canvas.setPointerCapture(event.pointerId);
             redrawAnnotations();
@@ -507,18 +661,7 @@
             break;
         }
         case 'end':
-            sharedDocument = null;
-            sharedDocumentFile = null;
-            if(sharedDocumentBlobUrl) URL.revokeObjectURL(sharedDocumentBlobUrl);
-            sharedDocumentBlobUrl = null;
-            operationCache.clear();
-            const download = byId('cm-doc-download');
-            if(download) {
-                download.removeAttribute('href');
-                download.removeAttribute('download');
-            }
-            showDocStage(false);
-            setDocStatus('文档共享已结束。');
+            clearLocalDocument('文档共享已结束。', message.docId);
             break;
         default:
             break;
@@ -540,10 +683,17 @@
             return false;
         f.onevent = function(state,data) {
             if(state === 'done') {
-                renderDocument(data instanceof Blob ? data : new Blob([data],{type:sharedDocument.mime}))
-                    .catch(e => { console.error(e); displayError('文档打开失败：' + e.message); });
+                const current = sharedDocument;
+                const received = data instanceof Blob ? data :
+                    new Blob([data],{type:current.mime || f.mimetype || 'application/octet-stream'});
+                renderDocument(received)
+                    .catch(e => {
+                        console.error(e);
+                        setDocStatus('文档预览失败：' + e.message + '。可以下载原文件，或请上传者重新共享。');
+                        displayError('文档打开失败：' + e.message);
+                    });
             } else if(state === 'cancelled') {
-                setDocStatus('文档接收失败：' + (data || '传输已取消'));
+                setDocStatus('文档接收失败：' + (data || '传输已取消') + '。可以重新请求文档。');
             }
         };
         f.receive().catch(e => {
@@ -637,12 +787,25 @@
             file.addEventListener('change', () => {
                 const selected = file.files && file.files[0];
                 if(selected) startDocumentShare(selected).catch(e => {
-                    console.error(e); displayError('文档打开失败：' + e.message);
-                });
-                file.value = '';
+                    console.error(e);
+                    displayError('文档打开失败：' + e.message);
+                }).finally(() => { file.value = ''; });
+                else
+                    file.value = '';
             });
+            file.addEventListener('cancel', () => { file.value = ''; });
         }
         byId('cm-doc-close')?.addEventListener('click', () => showDocStage(false));
+        byId('cm-doc-end')?.addEventListener('click', () => {
+            if(currentDocOwner() && window.confirm('确定取消当前文档共享吗？所有参会者将同时关闭文档。'))
+                endDocumentShare('文档共享已取消，可以重新上传文件。');
+        });
+        byId('cm-doc-pdf-prev')?.addEventListener('click', () => {
+            changePdfPage(-1).catch(e => { console.error(e); setDocStatus('PDF 页面切换失败：' + e.message); });
+        });
+        byId('cm-doc-pdf-next')?.addEventListener('click', () => {
+            changePdfPage(1).catch(e => { console.error(e); setDocStatus('PDF 页面切换失败：' + e.message); });
+        });
         byId('cm-doc-undo')?.addEventListener('click', () => {
             if(!sharedDocument) return;
             let opId = undoStack.pop();
@@ -669,10 +832,6 @@
             if(currentDocOwner() || currentDocEditor())
                 docAction({action:'clear'});
         });
-        byId('cm-doc-end')?.addEventListener('click', () => {
-            if(currentDocOwner() && window.confirm('确定结束文档共享吗？'))
-                docAction({action:'end'});
-        });
         byId('cm-doc-grant')?.addEventListener('click', () => {
             const target = byId('cm-doc-member').value;
             if(target) docAction({action:'grant-editor',target});
@@ -693,7 +852,16 @@
                 frame.style.pointerEvents = event.target.value === 'pan' ? 'auto' : 'none';
         });
         setupCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', () => {
+            if(pdfDocument)
+                renderPdfPage().catch(e => console.warn('PDF resize failed',e));
+            else
+                resizeCanvas();
+        });
+        byId('cm-doc-page')?.addEventListener('scroll', () => {
+            if(pdfDocument)
+                resizeCanvas();
+        });
         const users = byId('users');
         if(users) {
             const observer = new MutationObserver(installVolumeControls);

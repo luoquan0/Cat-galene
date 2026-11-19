@@ -1700,3 +1700,61 @@ body.cm-v2-room #video-container.cm-document-active {
         padding: 8px;
     }
 }
+
+
+/* PDF.js renderer: same-origin, bundled viewer with page-aware annotations. */
+body.cm-v2-room .cm-doc-pdf-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 6px;
+    padding: 3px 6px;
+    border: 1px solid #ead9dc;
+    border-radius: 10px;
+    background: #fff;
+    color: #765c59;
+    font-size: 11px;
+    white-space: nowrap;
+}
+body.cm-v2-room .cm-doc-pdf-nav[hidden] {
+    display: none !important;
+}
+body.cm-v2-room .cm-doc-pdf-nav button {
+    min-height: 27px;
+    padding: 3px 8px;
+    border: 1px solid #efd5dc;
+    border-radius: 7px;
+    background: #fff5f7;
+    color: #b9657f;
+    cursor: pointer;
+}
+body.cm-v2-room .cm-doc-pdf-nav button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+body.cm-v2-room .cm-doc-content.cm-doc-pdf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 1100px);
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+}
+body.cm-v2-room .cm-doc-pdf-render {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background: #fff;
+    box-shadow: 0 8px 28px rgba(50, 38, 42, .16);
+}
+@media (max-width: 760px) {
+    body.cm-v2-room .cm-doc-pdf-nav {
+        order: 2;
+        margin-right: 0;
+    }
+}
