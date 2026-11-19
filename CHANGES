@@ -1,3 +1,11 @@
+19 November 2026: Cat-Meet v1.2.2-cat.14
+
+  * Keep a restore control visible when a participant hides a shared-document
+    preview; hiding remains local and never ends the shared session.
+  * Add local zoom controls from 50% to 300% for PDF, DOCX, TXT and image
+    previews, while keeping the annotation canvas aligned with the page.
+  * Increase the default DOCX and TXT preview text size.
+
 19 November 2026: Cat-Meet v1.2.2-cat.13
 
   * Bundle PDF.js and its matching worker for reliable multi-page PDF preview.
