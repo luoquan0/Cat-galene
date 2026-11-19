@@ -11,6 +11,7 @@
     let pdfDocument = null;
     let pdfPageNumber = 1;
     let pdfRenderTask = null;
+    let documentZoom = 1;
     let activeOperation = null;
     let undoStack = [];
     let redoStack = [];
@@ -96,7 +97,10 @@
         if(content) {
             content.replaceChildren();
             content.classList.remove('cm-doc-pdf');
+            content.style.zoom = '';
         }
+        documentZoom = 1;
+        updateDocumentZoomLabel();
         const download = byId('cm-doc-download');
         if(download) {
             download.removeAttribute('href');
@@ -240,22 +244,30 @@
         const container = byId('video-container');
         if(!stage || !video || !container)
             return;
+        const hasSharedDocument = !!sharedDocument;
+        const restoreBar = byId('cm-doc-restore-bar');
+        const restoreTitle = byId('cm-doc-restore-title');
+        if(restoreTitle)
+            restoreTitle.textContent = safeText(sharedDocument && sharedDocument.name) || '共享文档';
+        if(restoreBar)
+            restoreBar.hidden = !!show || !hasSharedDocument;
+
         stage.hidden = !show;
         video.style.display = show ? 'none' : '';
         const empty = container.querySelector('.cm-empty-stage');
         if(empty)
             empty.style.display = show ? 'none' : '';
-        if(show) {
-            // Document mode must not depend on an active camera or screen
-            // stream. Audio-only meetings and single-user rooms still get a
-            // visible stage for the uploaded file.
+        if(show || hasSharedDocument) {
+            // Keep the stage container visible while a document is shared,
+            // even when the preview is hidden and no media stream is active.
             if(typeof setVisibility === 'function')
                 setVisibility('video-container', true);
             else
                 container.classList.remove('invisible');
             container.classList.add('cm-document-active');
             container.style.display = 'flex';
-            resizeCanvas();
+            if(show)
+                resizeCanvas();
         } else {
             container.classList.remove('cm-document-active');
             container.style.display = '';
@@ -371,6 +383,29 @@
         await renderPdfPage();
     }
 
+    function updateDocumentZoomLabel() {
+        const label = byId('cm-doc-zoom-value');
+        if(label)
+            label.textContent = Math.round(documentZoom * 100) + '%';
+        const out = byId('cm-doc-zoom-out');
+        const input = byId('cm-doc-zoom-in');
+        if(out) out.disabled = documentZoom <= 0.5;
+        if(input) input.disabled = documentZoom >= 3;
+    }
+
+    function applyDocumentZoom() {
+        const content = byId('cm-doc-content');
+        if(content)
+            content.style.zoom = String(documentZoom);
+        updateDocumentZoomLabel();
+        resizeCanvas();
+    }
+
+    function changeDocumentZoom(delta) {
+        documentZoom = Math.round(Math.max(0.5, Math.min(3, documentZoom + delta)) * 100) / 100;
+        applyDocumentZoom();
+    }
+
     async function renderDocument(file) {
         const content = byId('cm-doc-content');
         const title = byId('cm-doc-title');
@@ -384,6 +419,9 @@
         pdfPageNumber = 1;
         const fileName = safeText(file.name) || safeText(sharedDocument && sharedDocument.name) || '共享文档';
         content.replaceChildren();
+        documentZoom = 1;
+        content.style.zoom = '1';
+        updateDocumentZoomLabel();
         content.classList.remove('cm-doc-pdf');
         title.textContent = fileName;
         if(sharedDocumentBlobUrl)
@@ -405,7 +443,7 @@
         } else if(type === 'pdf') {
             if(!window.pdfjsLib)
                 throw new Error('PDF 阅读组件尚未加载，请刷新页面后重试。');
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js?v=1.2.2-cat.13';
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js?v=1.2.2-cat.14';
             const bytes = new Uint8Array(await file.arrayBuffer());
             const loadingTask = window.pdfjsLib.getDocument({
                 data: bytes,
@@ -447,8 +485,10 @@
         if(!canvas || !page)
             return;
         const pdfCanvas = byId('cm-doc-pdf-render');
+        const content = byId('cm-doc-content');
+        const target = pdfCanvas || content;
         const pageRect = page.getBoundingClientRect();
-        const targetRect = pdfCanvas && pdfCanvas.getBoundingClientRect();
+        const targetRect = target && target.getBoundingClientRect();
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
         const width = targetRect && targetRect.width > 0 ?
             targetRect.width : Math.max(1, page.clientWidth - 28);
@@ -796,6 +836,16 @@
             file.addEventListener('cancel', () => { file.value = ''; });
         }
         byId('cm-doc-close')?.addEventListener('click', () => showDocStage(false));
+        byId('cm-doc-restore')?.addEventListener('click', () => {
+            if(sharedDocument)
+                showDocStage(true);
+        });
+        byId('cm-doc-zoom-out')?.addEventListener('click', () => changeDocumentZoom(-0.25));
+        byId('cm-doc-zoom-in')?.addEventListener('click', () => changeDocumentZoom(0.25));
+        byId('cm-doc-zoom-reset')?.addEventListener('click', () => {
+            documentZoom = 1;
+            applyDocumentZoom();
+        });
         byId('cm-doc-end')?.addEventListener('click', () => {
             if(currentDocOwner() && window.confirm('确定取消当前文档共享吗？所有参会者将同时关闭文档。'))
                 endDocumentShare('文档共享已取消，可以重新上传文件。');
@@ -858,10 +908,8 @@
             else
                 resizeCanvas();
         });
-        byId('cm-doc-page')?.addEventListener('scroll', () => {
-            if(pdfDocument)
-                resizeCanvas();
-        });
+        byId('cm-doc-page')?.addEventListener('scroll', resizeCanvas);
+        byId('cm-doc-content')?.addEventListener('scroll', resizeCanvas);
         const users = byId('users');
         if(users) {
             const observer = new MutationObserver(installVolumeControls);
