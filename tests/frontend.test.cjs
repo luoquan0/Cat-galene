@@ -1042,6 +1042,7 @@ test('screen share is the main tile and microphone-only peers are compact', () =
     const nodes = {'peers': peers, 'video-container': stage,
         'peer-share': share, 'peer-camera': camera, 'peer-voice': voice};
     const sandbox = {
+        selectedScreenShareId: null,
         serverConnection: {up: {share: streams.share}, down: {
             camera: streams.camera, voice: streams.voice,
         }},
