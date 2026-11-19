@@ -271,11 +271,6 @@
             download.href = sharedDocumentBlobUrl;
             download.download = file.name;
         }
-        const download = byId('cm-doc-download');
-        if(download) {
-            download.href = sharedDocumentBlobUrl;
-            download.download = file.name;
-        }
         const type = docFileType(file);
         if(type === 'image') {
             const image = document.createElement('img');
