@@ -68,7 +68,7 @@ jobs:
 
   release:
     name: Package Linux server
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.13]'))
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.2.2-cat.14]'))
     needs: verify
     permissions:
       contents: write
@@ -89,7 +89,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "${GITHUB_ENV}"
           else
-            echo "RELEASE_TAG=v1.2.2-cat.13" >> "${GITHUB_ENV}"
+            echo "RELEASE_TAG=v1.2.2-cat.14" >> "${GITHUB_ENV}"
           fi
 
       - name: Build Linux server packages
@@ -125,7 +125,7 @@ jobs:
             exit 0
           fi
           cat > "${RUNNER_TEMP}/notes.txt" <<'EOF'
-          Cat-Meet v1.2.2-cat.13 · cute responsive UI + chat attachments.
+          Cat-Meet v1.2.2-cat.14 · cute responsive UI + chat attachments.
 
           - Keeps the microphone auto-recovery and device reliability fixes from v1.2.2-cat.4.
           - Display account/password login immediately on room navigation; wait for room metadata before submit.
@@ -158,6 +158,9 @@ jobs:
           - Added server-wide global meeting accounts that can enter every room, managed separately from server administrator credentials.
           - Bundled PDF.js for reliable multi-page PDF rendering, page navigation and page-aware annotations.
           - Fixed document cancellation and replacement so failed previews do not leave the room locked.
+          - Added a visible restore control when a participant hides a shared-document preview.
+          - Added local 50%-300% zoom controls for PDF, DOCX, TXT and image previews, with annotation alignment preserved.
+          - Increased the default DOCX and TXT preview text size.
           - Linux amd64/arm64 server packages and SHA256 checksums.
 
           See CHANGES and README for details.
