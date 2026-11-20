@@ -144,12 +144,12 @@
         if(!stage || !sharedDocument)
             return;
         stage.dataset.readonly = blocked ? 'true' : 'false';
-        for(const id of ['cm-doc-grant','cm-doc-block','cm-doc-allow','cm-doc-end']) {
+        for(const id of ['cm-doc-grant','cm-doc-block','cm-doc-allow','cm-doc-end','cm-doc-restore-end']) {
             const button = byId(id);
-            if(button) button.style.display = owner ? '' : 'none';
+            if(button) button.style.display = owner ? 'inline-flex' : 'none';
         }
         const clearButton = byId('cm-doc-clear');
-        if(clearButton) clearButton.style.display = editor ? '' : 'none';
+        if(clearButton) clearButton.style.display = editor ? 'inline-flex' : 'none';
         const target = byId('cm-doc-member');
         if(target) target.style.display = owner ? '' : 'none';
         const tool = byId('cm-doc-tool');
@@ -443,7 +443,7 @@
         } else if(type === 'pdf') {
             if(!window.pdfjsLib)
                 throw new Error('PDF 阅读组件尚未加载，请刷新页面后重试。');
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js?v=1.2.2-cat.14';
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.js?v=1.2.2-cat.15-dev';
             const bytes = new Uint8Array(await file.arrayBuffer());
             const loadingTask = window.pdfjsLib.getDocument({
                 data: bytes,
@@ -799,6 +799,9 @@
             summary.setAttribute('aria-label','调整该成员音量');
             const panel = document.createElement('div');
             panel.className = 'cm-user-volume-panel';
+            const heading = document.createElement('span');
+            heading.className = 'cm-user-volume-label';
+            heading.textContent = '音量';
             const slider = document.createElement('input');
             slider.type = 'range';
             slider.min = '0'; slider.max = '100'; slider.step = '1';
@@ -813,7 +816,7 @@
                 applyCatMeetUserVolume(id,username,slider.value);
             });
             slider.addEventListener('click', e => e.stopPropagation());
-            panel.append(slider,value);
+            panel.append(heading,slider,value);
             details.append(summary,panel);
             row.appendChild(details);
         }
@@ -846,10 +849,12 @@
             documentZoom = 1;
             applyDocumentZoom();
         });
-        byId('cm-doc-end')?.addEventListener('click', () => {
-            if(currentDocOwner() && window.confirm('确定取消当前文档共享吗？所有参会者将同时关闭文档。'))
+        const stopDocumentShare = () => {
+            if(currentDocOwner() && window.confirm('确定结束文档共享吗？所有参会者将同时关闭文档。'))
                 endDocumentShare('文档共享已取消，可以重新上传文件。');
-        });
+        };
+        byId('cm-doc-end')?.addEventListener('click', stopDocumentShare);
+        byId('cm-doc-restore-end')?.addEventListener('click', stopDocumentShare);
         byId('cm-doc-pdf-prev')?.addEventListener('click', () => {
             changePdfPage(-1).catch(e => { console.error(e); setDocStatus('PDF 页面切换失败：' + e.message); });
         });
@@ -910,6 +915,10 @@
         });
         byId('cm-doc-page')?.addEventListener('scroll', resizeCanvas);
         byId('cm-doc-content')?.addEventListener('scroll', resizeCanvas);
+        window.addEventListener('cat-meet-session-closed', () => {
+            clearLocalDocument('会议已断开，文档预览已关闭。');
+            setCatMeetingDuration(null);
+        });
         const users = byId('users');
         if(users) {
             const observer = new MutationObserver(installVolumeControls);

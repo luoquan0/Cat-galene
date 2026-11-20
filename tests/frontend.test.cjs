@@ -827,7 +827,7 @@ test('admin console has complete room, user and password management forms', () =
         'delete-user', 'users-group', 'admin-identity', 'logout']) {
         assert.match(page, new RegExp('id="' + id + '"'));
     }
-    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.14"/);
+    assert.match(page, /src="\/admin\.js\?v=1\.2\.2-cat\.15-dev"/);
     assert.doesNotMatch(page, /\son(?:click|load|error|submit)\s*=/i);
     assert.match(source, /\/galene-api\/v0\/\.admin-session/);
     assert.match(source, /'If-None-Match'/);
@@ -952,10 +952,10 @@ test('Cat-Meet branding and kawaii responsive UI are loaded', () => {
     const html = fs.readFileSync('static/galene.html', 'utf8');
     const css = fs.readFileSync('static/cat-meet-pro.css', 'utf8');
     const cute = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
-    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.14/);
-    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.14/);
-    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.14/);
-    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.14/);
+    assert.match(index, /cat-meet-pro\.css\?v=1\.2\.2-cat\.15-dev/);
+    assert.match(html, /cat-meet-pro\.css\?v=1\.2\.2-cat\.15-dev/);
+    assert.match(index, /cat-meet-cute\.css\?v=1\.2\.2-cat\.15-dev/);
+    assert.match(html, /cat-meet-cute\.css\?v=1\.2\.2-cat\.15-dev/);
     assert.match(index, /src="\/chaofan\.png/);
     assert.ok(fs.existsSync('static/chaofan.png'), 'logo must be inside the web static root');
     assert.match(html, /src="\/chaofan\.png/);
@@ -1213,7 +1213,7 @@ test('document cancel clears the local session and permits replacing a shared do
     assert.match(docs, /结束旧文档并改为共享新文件吗/);
     assert.match(docs, /file\.addEventListener\('cancel'/);
     assert.match(docs, /closeNav\(\)/);
-    assert.match(html, /id="cm-doc-end">取消共享/);
+    assert.match(html, /id="cm-doc-end">结束文档共享/);
     assert.match(html, /id="cm-doc-close" aria-label="隐藏文档预览">隐藏预览/);
 });
 
@@ -1234,4 +1234,76 @@ test('hidden shared-document previews can be restored and documents can be zoome
     assert.match(docs, /const target = pdfCanvas \|\| content/);
     assert.match(css, /\.cm-doc-restore-bar/);
     assert.match(css, /font: 16px\/1\.8 Arial/);
+});
+
+
+test('document owner can end a hidden preview without leaving a restore banner', () => {
+    const html = fs.readFileSync('static/galene.html', 'utf8');
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    assert.match(html, /id="cm-doc-restore-end"/);
+    assert.match(html, /id="cm-doc-end">结束文档共享/);
+    assert.match(docs, /button\.style\.display = owner \? 'inline-flex' : 'none'/);
+    assert.match(docs, /cm-doc-restore-end'\)\?\.addEventListener\('click', stopDocumentShare\)/);
+    assert.match(docs, /endDocumentShare\('文档共享已取消/);
+    assert.match(docs, /restoreBar\.hidden = !!show \|\| !hasSharedDocument/);
+});
+
+test('participant status changes preserve interactive volume sliders', () => {
+    const source = galene.match(/function setUserStatus\(id, elt, userinfo\) \{[\s\S]*?\n\}/);
+    assert.ok(source);
+    const spans = [];
+    const row = {
+        querySelector: () => spans.find(item => item.className === 'cm-user-name') || null,
+        insertBefore: node => spans.unshift(node),
+        classList: {add() {}, remove() {}},
+    };
+    const ctx = {document: {createElement: () => ({className: '', textContent: ''})}};
+    vm.runInNewContext(source[0] + '\nthis.updateUser = setUserStatus;', ctx);
+    ctx.updateUser('u1', row, {username: 'First', data: {}, streams: {}});
+    const slider = {className: 'cm-user-volume'};
+    spans.push(slider);
+    ctx.updateUser('u1', row, {username: 'Renamed', data: {}, streams: {camera: {audio: true}}});
+    assert.equal(spans[0].textContent, 'Renamed');
+    assert.equal(spans[1], slider);
+
+    const css = fs.readFileSync('static/cat-meet-cute.css', 'utf8');
+    assert.match(css, /#users \.user-p\s*\{\s*display: grid;[\s\S]*?overflow: visible;/);
+    assert.match(css, /\.cm-user-volume-panel\s*\{\s*position: static;/);
+    assert.match(css, /\.cm-user-volume:not\(\[open\]\) \.cm-user-volume-panel\s*\{\s*display: none;/);
+});
+
+test('unexpected disconnect resets document and drawer UI while tolerating missing media', () => {
+    const close = galene.match(/function gotClose\(code, reason\) \{[\s\S]*?\n\}/);
+    assert.ok(close);
+    const events = [];
+    const connection = {};
+    const ctx = {
+        serverConnection: connection,
+        cancelAudioRecovery() {}, closeUpMedia() {},
+        window: {dispatchEvent: event => events.push(event.type)},
+        Event: class {constructor(type) {this.type = type;}},
+        setConnected() {}, setButtonsVisibility() {},
+        console, displayWarning() {},
+    };
+    vm.runInNewContext(close[0] + '\nthis.onClose = gotClose;', ctx);
+    ctx.onClose.call({}, 1006, 'stale socket');
+    assert.equal(events.length, 0, 'old websocket must not reset a newer meeting');
+    ctx.onClose.call(connection, 1006, 'network lost');
+    assert.deepEqual(events, ['cat-meet-session-closed']);
+
+    const del = galene.match(/function delMedia\(localId\) \{[\s\S]*?\n\}/);
+    assert.ok(del);
+    const missing = {document: {getElementById: () => null}};
+    vm.runInNewContext(del[0] + '\nthis.removeMedia = delMedia;', missing);
+    assert.doesNotThrow(() => missing.removeMedia('already-removed'));
+
+    const docs = fs.readFileSync('static/cat-meet-docs.js', 'utf8');
+    const bridge = fs.readFileSync('static/cat-meet-v2.js', 'utf8');
+    const protocol = fs.readFileSync('static/protocol.js', 'utf8');
+    assert.match(docs, /addEventListener\('cat-meet-session-closed'/);
+    assert.match(docs, /clearLocalDocument\('会议已断开/);
+    assert.match(bridge, /addEventListener\('cat-meet-session-closed'/);
+    assert.match(bridge, /closePeople\(\);\s*syncPeoplePanel\(\)/);
+    assert.match(bridge, /sidebarnav'\)\?\.classList\.remove\('is-open'\)/);
+    assert.match(protocol, /socket\.onclose = function\(e\) \{\s*sc\.socket = null;/);
 });

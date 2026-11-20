@@ -351,6 +351,7 @@ ServerConnection.prototype.connect = function(url) {
         }
     };
     this.socket.onclose = function(e) {
+        sc.socket = null;
         sc.permissions = [];
         for(let id in sc.up) {
             let c = sc.up[id];

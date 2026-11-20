@@ -159,6 +159,20 @@
             event.returnValue = '';
         });
 
+        window.addEventListener('cat-meet-session-closed', () => {
+            allowExit = true;
+            backRequested = false;
+            closePeople();
+            syncPeoplePanel();
+            root.classList.add('cm-prejoin');
+            document.getElementById('sidebarnav')?.classList.remove('is-open');
+            if(leaveDialog.open)
+                leaveDialog.close('cancel');
+            const inviteDialog = document.getElementById('invite-dialog');
+            if(inviteDialog?.open)
+                inviteDialog.close('cancel');
+        });
+
         closeButton.addEventListener('click', event => {
             event.preventDefault();
             event.stopImmediatePropagation();

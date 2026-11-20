@@ -364,7 +364,7 @@ function setConnected(connected) {
     } else {
         userbox.classList.add('invisible');
         connectionbox.classList.remove('invisible');
-        hideVideo();
+        hideVideo(true);
         window.onresize = null;
     }
 }
@@ -496,15 +496,17 @@ function onPeerConnection() {
  * @param {string} reason
  */
 function gotClose(code, reason) {
+    if(this !== serverConnection)
+        return;
     cancelAudioRecovery();
     closeUpMedia();
+    window.dispatchEvent(new Event('cat-meet-session-closed'));
     setConnected(false);
+    setButtonsVisibility();
     if(code !== 1000) {
         console.warn('Socket close', code, reason);
+        displayWarning('会议连接意外断开，请检查网络后重新加入。');
     }
-    let form = document.getElementById('loginform');
-    if(!(form instanceof HTMLFormElement))
-        throw new Error('Bad type for loginform');
 }
 
 /**
@@ -2475,12 +2477,13 @@ function delMedia(localId) {
     let mediadiv = document.getElementById('peers');
     let peer = document.getElementById('peer-' + localId);
     if(!peer)
-        throw new Error('Removing unknown media');
+        return;
 
     let media = /** @type{HTMLVideoElement} */
         (document.getElementById('media-' + localId));
 
-    media.srcObject = null;
+    if(media)
+        media.srcObject = null;
     mediadiv.removeChild(peer);
 
     setButtonsVisibility();
@@ -2823,6 +2826,8 @@ function addUser(id, userinfo) {
     user.classList.add("user-p");
     setUserStatus(id, user, userinfo);
     user.addEventListener('click', function(e) {
+        if(e.target.closest('.cm-user-volume'))
+            return;
         let elt = e.currentTarget;
         if(!elt || !(elt instanceof HTMLElement))
             throw new Error("Couldn't find user div");
@@ -2876,7 +2881,13 @@ function changeUser(id, userinfo) {
  * @param {user} userinfo
  */
 function setUserStatus(id, elt, userinfo) {
-    elt.textContent = userinfo.username ? userinfo.username : '(anon)';
+    let name = elt.querySelector('.cm-user-name');
+    if(!name) {
+        name = document.createElement('span');
+        name.className = 'cm-user-name';
+        elt.insertBefore(name, elt.firstChild);
+    }
+    name.textContent = userinfo.username ? userinfo.username : '(anon)';
     if(userinfo.data.raisehand)
         elt.classList.add('user-status-raisehand');
     else
@@ -2909,7 +2920,8 @@ function setUserStatus(id, elt, userinfo) {
 function delUser(id) {
     let div = document.getElementById('users');
     let user = document.getElementById('user-' + id);
-    div.removeChild(user);
+    if(user)
+        div.removeChild(user);
 }
 
 /**
@@ -3012,6 +3024,8 @@ function configureJoinDevices(present) {
  * @param {string} message
  */
 async function gotJoined(kind, group, perms, status, data, error, message) {
+    if(this !== serverConnection)
+        return;
     let present = presentRequested;
     presentRequested = null;
 

@@ -1,3 +1,17 @@
+20 November 2026: Cat-Meet main (post v1.2.2-cat.14, pending next release)
+
+  * Make document-sharing termination accessible from both the open document
+    toolbar and the hidden-preview restore banner. Ending the share removes
+    the restore banner; only the document owner can end the shared session.
+  * Keep per-participant volume sliders reachable by expanding each user row
+    inline, and preserve sliders when member status is refreshed.
+  * Reset document, meeting timer, people/chat/settings dialogs, and media
+    stage on connection loss; ignore stale socket callbacks and tolerate
+    already removed user/media elements during teardown.
+  * Add frontend regression tests for document termination, live volume
+    updates, and disconnect cleanup. Browser/real-device verification remains
+    outstanding.
+
 19 November 2026: Cat-Meet v1.2.2-cat.14
 
   * Keep a restore control visible when a participant hides a shared-document
